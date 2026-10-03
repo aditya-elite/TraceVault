@@ -1,4 +1,4 @@
-# TraceVault (SIH26237, Team CYPHER SIX)
+# TraceVault (Team: CYPHER SIX)
 
 Offline multi-recipient post-quantum encrypted PDF distribution with decryption-time fingerprinting, recipient-signed events (ML-DSA-65), a four-node Byzantine-tolerant quorum provenance ledger, fail-closed release, interactive desktop UI, and an evidence/verification pipeline.
 
