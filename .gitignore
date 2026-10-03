@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
 
 # Pytest & Coverage
 .pytest_cache/
@@ -9,26 +10,55 @@ __pycache__/
 htmlcov/
 .tox/
 
-# Local runtime database, artifacts, and keys
+# Local runtime database, artifacts, evidence, and keys
 data/
+evidence/
 *.key
 *.keys
 *.db
 *.sqlite
 *.sqlite3
+*.evidence
+*.artifact.*
+
+# Environment and secret files
+.env
+.env.*
+*.env
+*.secret
+*.token
+*.pem
+*.crt
+*.pfx
+
+# Logs
+*.log
+logs/
 
 # Virtual environments
-.env
-.venv
-env/
+.venv/
 venv/
+env/
 ENV/
 
-# IDE & OS files
-.idea/
-.vscode/
+# Operating System & System files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.tmp
+*.bak
 *.swp
 *.swo
 *~
-.DS_Store
-Thumbs.db
+
+# IDE & Editor files
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
