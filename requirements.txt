@@ -1,0 +1,10 @@
+cryptography>=42
+pqcrypto>=0.4
+pymupdf>=1.24
+numpy
+opencv-python-headless
+fastapi
+uvicorn
+httpx
+reportlab
+pytest

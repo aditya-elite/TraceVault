@@ -1,0 +1,387 @@
+TRACEVAULT
+
+Completion Roadmap: from working backend to full product
+
+SIH26237 • Team CYPHER SIX • Companion to the Complete PRD v1.0 • Prepared 3 October 2026
+
+1. Purpose and current state
+
+This document lists what must still be implemented for TraceVault to match the Complete PRD. The delivered prototype is a tested Python backend (17 passing tests, a runnable golden-path demo). It proves the core security chain: multi-recipient envelope encryption, recipient-local decryption, session-bound fingerprinting, ML-DSA-65 event signing, a four-node quorum ledger, fail-closed release, and evidence verification. It does not yet include a user interface, a photo pipeline, distributed ledger nodes, or production hardening.
+
+1.1 Status against PRD requirements
+
+ID
+
+Requirement
+
+Status
+
+Notes
+
+FR-01
+
+Authentication and role separation
+
+Partial
+
+Token auth + role checks in API; users in memory; no UI, no MFA, secrets reset on restart
+
+FR-02
+
+PDF intake, stable document IDs
+
+Partial
+
+Works in API; plaintext is staged on disk (see 3.1)
+
+FR-03
+
+Recipient public-key registration
+
+Done
+
+Registry + API; key IDs derived from public keys
+
+FR-04
+
+Local key generation, encrypted key store
+
+Prototype
+
+scrypt + AES-GCM file; no TPM/HSM, no rotation
+
+FR-05/06
+
+AES-256-GCM + per-recipient ML-KEM-768
+
+Done
+
+Tests for 1, 3, wrong and unauthorized recipients
+
+FR-07
+
+Recipient-local decryption
+
+Partial
+
+Library-level only; no desktop client
+
+FR-08/09
+
+Fingerprinting; PDF watermark embed/extract
+
+Prototype
+
+Raster spread-spectrum; text layer lost; no error-correcting code
+
+FR-10
+
+Canonical event + ML-DSA-65
+
+Done
+
+Domain-separated canonical JSON
+
+FR-11/12
+
+Four-node ledger, quorum
+
+Prototype
+
+Four local directories in one process; no network, no real consensus
+
+FR-13
+
+Fail-closed release
+
+Done
+
+Tested: no quorum, fingerprint, signature failures
+
+FR-14/15
+
+Digital evidence, evidence hash
+
+Done
+
+Read-only preservation, SHA3-256
+
+FR-16/17
+
+Verification and report
+
+Partial
+
+Text report only; no PDF/signed export
+
+FR-18
+
+Photo evidence pipeline
+
+Missing
+
+No perspective correction, no geometry-robust watermark
+
+FR-19
+
+Image content protection
+
+Missing
+
+Future per PRD; interface exists
+
+FR-20
+
+Audit/history UI
+
+Partial
+
+Audit log written by API; not hash-chained; no UI
+
+2. Work required, by priority
+
+Priority P0 is needed for the SIH demonstration to run as the PRD describes. P1 is needed for the claims in the PRD to hold up under scrutiny. P2 is production hardening and future scope. Sizes are rough relative estimates: S under 3 days, M about a week, L two weeks or more, for one developer.
+
+2.1 P0: Application and demo path
+
+Item
+
+What to build
+
+Size
+
+Desktop client UI
+
+React app in a desktop shell (Tauri or Electron). Screens from PRD §16: login with key-store unlock, admin dashboard, document intake, recipient management, distribution wizard, recipient dashboard, investigator dashboard, evidence report, ledger monitor.
+
+L
+
+Decryption timeline
+
+Live progress view: decapsulate → decrypt → fingerprint → sign → ledger → release, fed by the existing progress callback. Show per-node attestations arriving, and a clear failure state at the step that stopped release.
+
+M
+
+Recipient-side flow over API
+
+Recipient client holds keys locally and calls the API only with the public event, signature and signer key ID. Add endpoints to fetch a recipient package, and move commit-then-release into the client so the server never sees plaintext or private keys.
+
+M
+
+Persistent state
+
+Replace in-memory users, packages and tokens with a database (SQLite is enough). Persist Session, WatermarkRecord, Distribution, EvidenceCase and VerificationResult entities from PRD §15. Use a persistent token secret and password salt per user.
+
+M
+
+Viewer for the released document
+
+In-app viewer for the protected PDF. Decide whether to block save and print in the viewer, and document that screen capture cannot be prevented.
+
+S
+
+Evidence report export
+
+Render the report to PDF and JSON, include the full evidence chain, hashes and the PRD disclaimer. Optionally sign the report with an investigator key.
+
+M
+
+Demo data and scripts
+
+Three synthetic recipients, a sample classified PDF, a scripted leak artifact generator, and a negative-path set: invalid signature, missing ledger proof, tampered ledger.
+
+S
+
+2.2 P1: Make the PRD claims hold
+
+Watermark and photo evidence
+
+Error-correcting code. Wrap the payload in BCH or Reed-Solomon coding and replace the CRC-only check, so partial damage still recovers the identifier.
+
+Geometry-robust embedding. The current extractor assumes the same alignment and uniform scale. Add a synchronization template (for example Fourier-domain or log-polar) so rotation, cropping and perspective do not break extraction. This is the main technical risk for FR-18.
+
+Photo preprocessing. Page detection, perspective rectification, illumination normalization, denoising and blur estimation, followed by per-page and per-region voting.
+
+Confidence scoring. Replace the single strength threshold with calibrated confidence from false-positive trials on non-watermarked pages. Map it to the PRD statuses, especially CORRUPTED / LOW CONFIDENCE.
+
+Preserve the document. Release currently rasterizes pages, losing selectable text and file size efficiency (about 1.6 MB for two pages). Add vector-aware marking (for example subtle glyph or spacing modulation plus a low-amplitude raster layer) so the PDF stays searchable.
+
+Imperceptibility and strength tuning. Measure PSNR/SSIM, tune the embedding strength per page content, and handle blank or very dark pages.
+
+Robustness test matrix. Automated tests for copy, rename, re-save, metadata edit, JPEG levels, rescale, crop, rotation, print/scan at fixed DPI, and phone photos under defined lighting and angle. Record pass rates and publish them; this defines the supported transformation budget (PRD §29).
+
+Controlled capture protocol. Specify distance, angle range, lighting, resolution and acceptance thresholds for the demo photograph (PRD §29).
+
+Ledger
+
+Real four-node deployment. Run each node as its own service with its own database and key, communicating over the LAN with mutual TLS. Today all four are directories in one process, so independence is simulated.
+
+Defined consensus protocol. Choose and implement a BFT-style rule (PBFT-lite or a leader-based commit with 2f+1 votes), including leader failure, view change and replay protection. Document the trust model and what the 3-of-4 quorum does and does not tolerate.
+
+Node recovery. Validated resynchronization of a lagging or restarted node (the current resync copies from the longest chain without full validation).
+
+Corrections as new events. Add event types for key revocation, document revocation and correction, as required by PRD §13. Verification must honor revocation at event time.
+
+Signed checkpoints. Periodic quorum-signed head checkpoints that investigators can pin, so a rewrite of the entire history by a colluding majority is detectable against an offline copy.
+
+Independent verifier tool. A standalone command-line verifier that checks a ledger export without trusting the running system.
+
+Cryptography and keys
+
+Known-answer tests. Validate ML-KEM-768 and ML-DSA-65 against NIST ACVP or FIPS 203/204 vectors. The current tests are round-trip and tamper tests only.
+
+Library decision. The prototype uses the pqcrypto package (PQClean). Evaluate liboqs or another maintained implementation, freeze versions, and add interoperability tests. Note that neither choice is FIPS-validated.
+
+Key lifecycle. Generation ceremony, backup, rotation, expiry, revocation and re-keying of in-flight packages. Document it (PRD §29).
+
+Key store hardening. Tune scrypt parameters, add lockout and unlock timeouts, zeroize secrets in memory where possible, and define the TPM/HSM migration path.
+
+Trusted time. Event timestamps come from the recipient machine. Decide on a controlled LAN time source or have the ledger quorum attest a time.
+
+Watermark identifier length. The embedded identifier is a 64-bit prefix of the digest. Quantify collision risk at expected scale and increase it or add checksum-linked lookup if needed.
+
+2.3 P2: Hardening, packaging and future scope
+
+Offline packaging. Bundle the Python service (for example PyInstaller) with the desktop shell into installers; verify the full demo on an isolated LAN with no Internet.
+
+Service identity. Service-to-service credentials for ledger nodes and the API, certificate issuance inside the air-gapped network.
+
+Authentication upgrades. MFA or hardware token option, rate limiting, session revocation, and separation of key-store unlock from login.
+
+Tamper-evident audit log. Hash-chain the audit log and mirror important entries to the ledger.
+
+Fuzzing and attack tests. Malformed packages, events and PDFs; watermark removal attempts; collusion between recipients (combining two marked copies); replay of old events.
+
+Image content protection (FR-19). Second ContentProtector implementation for images, using the existing interface.
+
+Migration path. Prototype adapter for Hyperledger Fabric behind the same ledger interface, as stated in the PRD.
+
+3. Known issues in the current prototype
+
+These are limitations found while building, listed so they are fixed deliberately rather than discovered later.
+
+3.1 Security-relevant
+
+Plaintext staging on the server. The admin document endpoint writes the uploaded PDF to disk unencrypted until distribution. Encrypt at rest immediately, or encrypt on upload and keep only the package.
+
+Ephemeral API secrets. Token secret and password salt are regenerated on every start, which invalidates sessions and makes stored hashes unusable after restart.
+
+Packages held in memory. Created packages are kept in a process dictionary and only returned once.
+
+Single-process ledger. A compromise of the host compromises all four nodes, so the multi-node threat-model claim is not yet real.
+
+Released plaintext handling. Decrypted bytes live in ordinary Python memory. Define where the protected copy may be written and how it is cleaned up.
+
+3.2 Functional
+
+Rasterized output. Released PDFs lose the text layer and are large.
+
+Uniform-scale assumption. Extraction handles resize, JPEG and noise but not crops or rotation, and has not been tested on real print/scan or camera captures.
+
+Lookup is by watermark prefix. The match is confirmed by the signature and digest checks, but the lookup scan is linear and should be indexed.
+
+No revocation enforcement. Revocation is recorded in the registry but is not yet checked at decryption or verification time.
+
+4. Suggested delivery sequence
+
+Phase
+
+Deliverable
+
+Exit criterion
+
+A: Foundations
+
+Database, persistent secrets, recipient client flow, KAT vectors, document and package format specs
+
+Recipient decrypts via client with no plaintext or private key on the server
+
+B: Ledger
+
+Four networked node services, consensus rule, mTLS, resync, revocation events, standalone verifier
+
+Commit survives one node down; single-node rewrite is rejected across processes
+
+C: UI
+
+All PRD §16 screens, decryption timeline, ledger monitor
+
+Golden path runs entirely from the UI
+
+D: Watermark v2
+
+ECC, vector-aware marking, robustness matrix, calibrated confidence
+
+Published pass rates for the supported digital transformations
+
+E: Photo
+
+Synchronization template, rectification, capture protocol
+
+Controlled photograph verifies at the stated acceptance threshold
+
+F: Reporting and hardening
+
+PDF/JSON reports, fuzzing, attack tests, offline installer, negative-path demo
+
+Golden and negative paths pass on an isolated LAN, three times in a row
+
+5. Open decisions (PRD §29) with recommendations
+
+Decision
+
+Recommendation
+
+Desktop shell
+
+Tauri if a small installer matters; Electron if team familiarity matters. Either works with the existing FastAPI service as a local sidecar.
+
+Crypto library
+
+Keep the current library behind the crypto.py interface, run KATs now, and evaluate liboqs before Phase B.
+
+Watermark technique
+
+Keep spread-spectrum for the raster layer and add a synchronization template for photos; decide the vector layer after Phase D prototyping.
+
+Quorum protocol
+
+Leader-based commit needing 3 of 4 signed votes, with signed checkpoints; document that it tolerates one faulty node.
+
+Canonical serialization
+
+Already implemented as domain-prefixed canonical JSON; freeze it as version 1 in a written spec.
+
+Package format
+
+JSON v1 is implemented; define a binary container with version and algorithm identifiers before external use.
+
+Report format
+
+PDF for people, JSON for tools, both carrying the evidence chain and the disclaimer.
+
+Photo acceptance
+
+Define by measurement after Phase E: for example distance, angle and lighting ranges at which a target recovery rate is met.
+
+6. Completion checklist (PRD §27 success criteria)
+
+Encryption: one payload to three recipients with distinct encapsulations. Met in tests.
+
+Key ownership: private keys never leave local storage. Met at library level; must be re-proven end to end with the client and with log scanning.
+
+Fingerprinting: each decryption yields a distinct session-bound fingerprint. Met in tests.
+
+Provenance: each release has a signed event on the ledger. Met in-process; needs networked nodes.
+
+Attribution: controlled leak maps to the right recipient and session. Met for digital leaks.
+
+Tamper detection: modified ledger or signature evidence is rejected. Met in-process; re-test across real nodes.
+
+Fail closed: missing provenance blocks release. Met in tests; re-test through the client.
+
+Photo target: controlled photographs processed when signal remains. Not met.
+
+Explainability: investigator sees why verification passed or failed. Partially met (text checks); needs the report UI.
+
+Offline: core demo works on an isolated LAN. Not yet verified.
