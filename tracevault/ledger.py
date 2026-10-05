@@ -12,8 +12,10 @@ Includes:
 - Quorum-signed checkpoints for offline investigator pinning.
 - Standalone ledger chain verification.
 """
-import json, os, time
+import json, os, threading, time
+from filelock import FileLock
 from . import crypto as C
+from .config import env_int
 from .events import digest_matches
 
 N_NODES, QUORUM = 4, 3
@@ -22,23 +24,36 @@ GENESIS = "0" * 64
 def record_hash(index, event, sig_b64, signer, prev) -> str:
     return C.sha3(str(index).encode(), C.canonical(event), sig_b64.encode(), signer.encode(), prev.encode())
 
+def node_key_env(node_id: str) -> str:
+    """'node-3' -> 'TV_NODE_3_KEY'"""
+    return "TV_" + node_id.upper().replace("-", "_") + "_KEY"
+
 class LedgerNode:
-    def __init__(self, node_id, directory, port: int | None = None):
+    def __init__(self, node_id, directory, port: int | None = None, key: tuple[bytes, bytes] | None = None):
         self.id, self.dir, self.online = node_id, directory, True
         self.port = port
         os.makedirs(directory, exist_ok=True)
-        kp = os.path.join(directory, "node_key.json")
-        if not os.path.exists(kp):
-            pk, sk = C.dsa_keygen()
-            json.dump({"pk": C.b64e(pk), "sk": C.b64e(sk)}, open(kp, "w"))
-            try:
-                os.chmod(kp, 0o600)
-            except Exception:
-                pass
-        k = json.load(open(kp))
-        self.pk, self._sk = C.b64d(k["pk"]), C.b64d(k["sk"])
+        # The node's ML-DSA key pair comes from the environment (TV_NODE_<n>_KEY), never from a file on disk.
+        self.pk, self._sk = key or C.keypair_from_env(node_key_env(node_id))
         self.chain_path = os.path.join(directory, "chain.jsonl")
-        self.records = [json.loads(l) for l in open(self.chain_path)] if os.path.exists(self.chain_path) else []
+        # Cross-process + cross-thread guard around every write to this node's chain file.
+        self._lock = FileLock(self.chain_path + ".lock", timeout=env_int("TV_LOCK_TIMEOUT", 30))
+        self.records = []
+        self.refresh()
+
+    def refresh(self):
+        """Pull any records appended to chain.jsonl by another process/thread since we last looked.
+        The chain is append-only, so only the unseen tail needs parsing."""
+        if not os.path.exists(self.chain_path):
+            return
+        with open(self.chain_path) as f:
+            for i, line in enumerate(f):
+                if i < len(self.records) or not line.strip():
+                    continue
+                try:
+                    self.records.append(json.loads(line))
+                except json.JSONDecodeError:
+                    break   # torn trailing write from a crashed writer; ignore until it is completed/repaired
 
     @property
     def head(self):
@@ -74,10 +89,16 @@ class LedgerNode:
         return C.b64e(C.dsa_sign(self._sk, b"TV-CHECKPOINT" + checkpoint_data))
 
     def append(self, rec):
+        """Append one record atomically. Takes the file lock, re-reads the tail from disk, re-checks that the
+        record still extends the chain, then writes + fsyncs before releasing the lock."""
         line = json.dumps(rec)
-        self.records.append(json.loads(line))  # each node owns an independent copy
-        with open(self.chain_path, "a") as f:
-            f.write(line + "\n")
+        with self._lock:
+            self.refresh()
+            if rec["index"] != len(self.records) or rec["prev_hash"] != self.head:
+                raise ValueError(f"{self.id}: concurrent write detected, chain link mismatch")
+            with open(self.chain_path, "a") as f:
+                f.write(line + "\n"); f.flush(); os.fsync(f.fileno())
+            self.records.append(json.loads(line))   # each node owns an independent copy
 
     def to_dict(self) -> dict:
         return {
@@ -92,6 +113,10 @@ class LedgerNode:
 class Ledger:
     def __init__(self, base_dir, base_port: int = 8100):
         self.base_dir = base_dir
+        os.makedirs(base_dir, exist_ok=True)
+        # One commit at a time across all threads and processes sharing this ledger directory.
+        self._tlock = threading.RLock()
+        self._flock = FileLock(os.path.join(base_dir, "ledger.lock"), timeout=env_int("TV_LOCK_TIMEOUT", 30))
         self.nodes = [
             LedgerNode(f"node-{i+1}", os.path.join(base_dir, f"node-{i+1}"), port=base_port + i)
             for i in range(N_NODES)
@@ -99,6 +124,12 @@ class Ledger:
         self.node_pks = {n.id: n.pk for n in self.nodes}
 
     def commit(self, event: dict, signature: bytes, signer_key_id: str, registry) -> dict:
+        with self._tlock, self._flock:
+            for n in self.nodes:
+                n.refresh()          # see commits made by other workers before choosing index/prev_hash
+            return self._commit_locked(event, signature, signer_key_id, registry)
+
+    def _commit_locked(self, event: dict, signature: bytes, signer_key_id: str, registry) -> dict:
         live = [n for n in self.nodes if n.online]
         lead = max(live, key=lambda n: len(n.records), default=None)
         if lead is None or len(live) < QUORUM:
@@ -135,6 +166,12 @@ class Ledger:
 
     def resync(self, node):
         """Bring a lagging or restored node level with the longest validated peer chain."""
+        with self._tlock, self._flock:
+            self._resync_locked(node)
+
+    def _resync_locked(self, node):
+        for n in self.nodes:
+            n.refresh()
         candidates = [n for n in self.nodes if n is not node and n.online]
         if not candidates:
             return

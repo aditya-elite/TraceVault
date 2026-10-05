@@ -21,9 +21,9 @@ def process_case(data: bytes, filename: str, registry, ledger, evidence_dir: str
     def check(name, ok, detail): rep["checks"].append({"name": name, "passed": ok, "detail": detail}); return ok
     def done(status): rep["status"] = status; return rep
 
-    kind, imgs = W.decode_evidence(data)
+    kind, imgs = W.decode_evidence(data, filename)
     if not check("Evidence readable", kind is not None, f"type={kind}"): return done(LOW)
-    ex = W.extract_images(imgs); rep["extraction"] = {"pages_or_images": len(imgs), "strength": ex["strength"], "result": ex["status"]}
+    ex = W.extract_images_robust(imgs); rep["extraction"] = {"pages_or_images": len(imgs), "strength": ex["strength"], "result": ex["status"]}
     if ex["status"] == "none": check("Watermark extraction", False, f"no watermark energy (strength {ex['strength']})"); return done(NO_WM)
     if ex["status"] == "low": check("Watermark extraction", False, "watermark energy present but payload failed integrity check"); return done(LOW)
     wid = ex["payload"].hex(); check("Watermark extraction", True, f"id={wid} strength={ex['strength']}")
@@ -45,6 +45,19 @@ def process_case(data: bytes, filename: str, registry, ledger, evidence_dir: str
     lv = ledger.verify(registry); rep["ledger"] = lv
     ok &= check("Ledger integrity & quorum", lv["ok"], f"{sum(v['ok'] for v in lv['nodes'].values())}/4 nodes valid and agreeing")
     return done(VERIFIED if ok else PROOF_INCOMPLETE)
+
+# Plain-language classification for UIs (green shield / amber / red warning). Raw statuses stay in reports.
+_VERDICTS = {
+    VERIFIED: ("verified", "Verified", "This file is an authentic, tracked copy and the record is intact."),
+    PROOF_INCOMPLETE: ("inconclusive", "Needs review", "A tracking mark was found but the proof is incomplete. Ask an auditor to review."),
+    INVALID_SIG: ("failed", "Failed", "The tracking record does not match its owner. Do not trust this file."),
+    NO_WM: ("failed", "Failed", "No tracking mark found. This is not a tracked copy."),
+    LOW: ("failed", "Failed", "The file is damaged, unreadable or not a supported type, so it could not be checked."),
+}
+
+def verdict(status: str) -> dict:
+    kind, headline, explain = _VERDICTS.get(status, ("inconclusive", "Needs review", "Status unknown."))
+    return {"verdict": kind, "headline": headline, "explain": explain}
 
 def render_text(r: dict) -> str:
     L = [f"TRACEVAULT EVIDENCE REPORT  {r['case_id']}", f"Status: {r['status']}", f"Evidence: {r['evidence_file']}",

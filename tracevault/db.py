@@ -14,22 +14,8 @@ class Database:
     def __init__(self, db_path: str, master_key: bytes | None = None):
         self.db_path = db_path
         os.makedirs(os.path.dirname(os.path.abspath(db_path)), exist_ok=True)
-        self.master_key = master_key or self._get_or_create_master_key(os.path.dirname(db_path))
+        self.master_key = master_key or C.key_from_env("TV_MASTER_KEY")  # AES-256 vault key, from the environment
         self._init_schema()
-
-    @staticmethod
-    def _get_or_create_master_key(dir_path: str) -> bytes:
-        key_file = os.path.join(dir_path, "master.key")
-        if os.path.exists(key_file):
-            return open(key_file, "rb").read()
-        key = os.urandom(32)
-        with open(key_file, "wb") as f:
-            f.write(key)
-        try:
-            os.chmod(key_file, 0o600)
-        except Exception:
-            pass
-        return key
 
     def get_connection(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.db_path)
@@ -39,6 +25,13 @@ class Database:
     def _init_schema(self):
         with self.get_connection() as conn:
             c = conn.cursor()
+            try:   # upgrade databases created before multi-format support
+                have = {r[1] for r in c.execute("PRAGMA table_info(documents)").fetchall()}
+                for col in ("kind", "source_kind", "source_name"):
+                    if have and col not in have:
+                        c.execute(f"ALTER TABLE documents ADD COLUMN {col} TEXT NOT NULL DEFAULT '{'' if col == 'source_name' else 'pdf'}'")
+            except sqlite3.Error:
+                pass
             c.executescript("""
             CREATE TABLE IF NOT EXISTS users (
                 username TEXT PRIMARY KEY,
@@ -66,7 +59,10 @@ class Database:
                 status TEXT NOT NULL DEFAULT 'active',
                 nonce_b64 TEXT NOT NULL,
                 encrypted_content_b64 TEXT NOT NULL,
-                created_at TEXT NOT NULL
+                created_at TEXT NOT NULL,
+                kind TEXT NOT NULL DEFAULT 'pdf',
+                source_kind TEXT NOT NULL DEFAULT 'pdf',
+                source_name TEXT NOT NULL DEFAULT ''
             );
 
             CREATE TABLE IF NOT EXISTS distributions (
@@ -108,6 +104,9 @@ class Database:
                 entry_hash TEXT NOT NULL
             );
             """)
+            # Legacy role names -> RBAC roles (idempotent)
+            c.execute("UPDATE users SET role='submitter' WHERE role='recipient'")
+            c.execute("UPDATE users SET role='auditor' WHERE role='investigator'")
             conn.commit()
 
     # --- User Management ---
@@ -137,29 +136,66 @@ class Database:
                 return {"username": row["username"], "role": row["role"]}
         return None
 
+    def get_user(self, username: str) -> dict | None:
+        with self.get_connection() as conn:
+            row = conn.cursor().execute("SELECT username, role, created_at FROM users WHERE username = ?", (username,)).fetchone()
+            return dict(row) if row else None
+
+    def ensure_user(self, username: str, password: str, role: str) -> bool:
+        """Create the user only if absent (never overwrites an existing password). Returns True if created."""
+        if self.get_user(username):
+            return False
+        self.add_user(username, password, role)
+        return True
+
+    def set_password(self, username: str, password: str) -> bool:
+        salt = os.urandom(16)
+        with self.get_connection() as conn:
+            cur = conn.cursor().execute("UPDATE users SET password_hash=?, salt=? WHERE username=?",
+                                        (self.hash_password(password, salt), C.b64e(salt), username))
+            conn.commit()
+            return cur.rowcount > 0
+
+    def set_role(self, username: str, role: str) -> bool:
+        with self.get_connection() as conn:
+            cur = conn.cursor().execute("UPDATE users SET role=? WHERE username=?", (role, username))
+            conn.commit()
+            return cur.rowcount > 0
+
+    def delete_user(self, username: str) -> bool:
+        with self.get_connection() as conn:
+            cur = conn.cursor().execute("DELETE FROM users WHERE username=?", (username,))
+            conn.commit()
+            return cur.rowcount > 0
+
+    def count_role(self, role: str) -> int:
+        with self.get_connection() as conn:
+            return conn.cursor().execute("SELECT COUNT(*) FROM users WHERE role=?", (role,)).fetchone()[0]
+
     def list_users(self) -> list[dict]:
         with self.get_connection() as conn:
             rows = conn.cursor().execute("SELECT username, role, created_at FROM users").fetchall()
             return [dict(r) for r in rows]
 
     # --- Encrypted Document Vault (Encrypted at rest) ---
-    def store_document(self, document_id: str, title: str, plaintext_pdf: bytes, owner: str) -> str:
+    def store_document(self, document_id: str, title: str, plaintext_pdf: bytes, owner: str,
+                       kind: str = "pdf", source_kind: str | None = None, source_name: str = "") -> str:
         sha3 = C.sha3(plaintext_pdf)
         aad = f"DOC_VAULT|{document_id}".encode()
         nonce, ciphertext = C.aes_encrypt(self.master_key, plaintext_pdf, aad)
         now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
         with self.get_connection() as conn:
             conn.cursor().execute(
-                "INSERT OR REPLACE INTO documents (document_id, title, original_hash, owner, status, nonce_b64, encrypted_content_b64, created_at) "
-                "VALUES (?, ?, ?, ?, 'active', ?, ?, ?)",
-                (document_id, title, sha3, owner, C.b64e(nonce), C.b64e(ciphertext), now)
+                "INSERT OR REPLACE INTO documents (document_id, title, original_hash, owner, status, nonce_b64, encrypted_content_b64, created_at, kind, source_kind, source_name) "
+                "VALUES (?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?)",
+                (document_id, title, sha3, owner, C.b64e(nonce), C.b64e(ciphertext), now, kind, source_kind or kind, source_name)
             )
             conn.commit()
         return sha3
 
     def get_document_meta(self, document_id: str) -> dict | None:
         with self.get_connection() as conn:
-            row = conn.cursor().execute("SELECT document_id, title, original_hash, owner, status, created_at FROM documents WHERE document_id = ?",
+            row = conn.cursor().execute("SELECT document_id, title, original_hash, owner, status, created_at, kind, source_kind, source_name FROM documents WHERE document_id = ?",
                                         (document_id,)).fetchone()
             return dict(row) if row else None
 
@@ -174,7 +210,7 @@ class Database:
 
     def list_documents(self) -> list[dict]:
         with self.get_connection() as conn:
-            rows = conn.cursor().execute("SELECT document_id, title, original_hash, owner, status, created_at FROM documents ORDER BY created_at DESC").fetchall()
+            rows = conn.cursor().execute("SELECT document_id, title, original_hash, owner, status, created_at, kind, source_kind, source_name FROM documents ORDER BY created_at DESC").fetchall()
             return [dict(r) for r in rows]
 
     def revoke_document(self, document_id: str):
@@ -269,9 +305,14 @@ class Database:
             )
             conn.commit()
 
-    def list_evidence_cases(self) -> list[dict]:
+    def list_evidence_cases(self, submitter: str | None = None, limit: int = 500) -> list[dict]:
+        """All cases, or only those of one submitter. (Column `investigator` holds the submitter's username.)"""
+        q = "SELECT case_id, filename, evidence_sha3, investigator, status, created_at FROM evidence_cases"
+        args: tuple = ()
+        if submitter is not None:
+            q += " WHERE investigator = ?"; args = (submitter,)
         with self.get_connection() as conn:
-            rows = conn.cursor().execute("SELECT case_id, filename, evidence_sha3, investigator, status, created_at FROM evidence_cases ORDER BY created_at DESC").fetchall()
+            rows = conn.cursor().execute(q + " ORDER BY created_at DESC, rowid DESC LIMIT ?", args + (limit,)).fetchall()
             return [dict(r) for r in rows]
 
     def get_evidence_case(self, case_id: str) -> dict | None:

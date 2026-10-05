@@ -1,6 +1,12 @@
 import io, os, sys, pytest
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from reportlab.pdfgen import canvas
+# Test-only secrets, injected through the environment exactly as production does (see .env.example).
+from tracevault import crypto as _C
+os.environ.setdefault("TV_MASTER_KEY", _C.b64e(os.urandom(32)))
+os.environ.setdefault("TV_JWT_SECRET", "test-secret-" + "x" * 40)
+for _i in range(1, 5):
+    os.environ.setdefault(f"TV_NODE_{_i}_KEY", _C.keypair_to_env(*_C.dsa_keygen()))
 from tracevault import crypto as C, package
 from tracevault.keystore import KeyStore
 from tracevault.ledger import Ledger

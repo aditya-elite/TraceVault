@@ -1,4 +1,4 @@
-# TraceVault (Team: CYPHER SIX)
+# TraceVault (SIH26237, Team CYPHER SIX)
 
 Offline multi-recipient post-quantum encrypted PDF distribution with decryption-time fingerprinting, recipient-signed events (ML-DSA-65), a four-node Byzantine-tolerant quorum provenance ledger, fail-closed release, interactive desktop UI, and an evidence/verification pipeline.
 
@@ -89,3 +89,60 @@ python -m tracevault.verify_ledger <ledger_export.json> <registry.json> # Indepe
 - [x] **Rotation & Compression Robustness**: Watermark recovered under 90°/180°/270° rotations and JPEG Q50.
 - [x] **Report Export**: Automated PDF and JSON report generation.
 - [x] **Standalone Verifier**: Independent CLI tool verifies exported ledger integrity without server trust.
+
+## Roles, login and configuration (v3)
+
+| Role | Can do |
+|---|---|
+| **Submitter** | Drop evidence files to check them, see their own history, download PDF reports |
+| **Auditor** | Read-only: all submissions, ledger health (independent verifier), re-check authenticity, activity log |
+| **Admin** | Manage users and roles, ledger nodes, the registry; may read everything auditors can |
+
+Sign-in issues a short-lived JWT (HS256). Roles are re-checked against the database on every request, so a
+role change or deletion applies immediately.
+
+### First run
+```bash
+pip install -r requirements.txt
+python -m tracevault.keygen > .env        # fresh secrets (see .env.example for every setting)
+echo "TV_ADMIN_PASSWORD=choose-a-strong-one" >> .env
+python -m tracevault.server               # http://127.0.0.1:8000
+```
+Upgrading an existing install? Run `python -m tracevault.keygen --migrate ./data > .env`, confirm the app
+starts, then securely delete `master.key`, `api_secret.key` and `ledger/node-*/node_key.json`.
+Existing `recipient`/`investigator` accounts are renamed to `submitter`/`auditor` automatically.
+
+### Secrets
+All secrets come from the environment / `.env` (python-dotenv): `TV_MASTER_KEY`, `TV_JWT_SECRET`,
+`TV_NODE_1..4_KEY`. Nothing secret is read from or written to `data/`. Per-user keystores stay passphrase
+encrypted (file in `TV_KEYSTORE_DIR`, or `TV_KEYSTORE_<USER>` env var); passphrases are never stored.
+
+### Ledger concurrency
+Every append to a node's `chain.jsonl` and every commit is guarded by `filelock` (cross-process and
+cross-thread). Under the lock the node re-reads the file tail and re-checks the chain link, then writes and
+fsyncs, so concurrent submissions cannot fork or interleave the chain.
+
+### Where each original feature lives in the web UI (v3.1)
+
+| Original screen | Now | Who |
+|---|---|---|
+| System overview | Overview | Admin |
+| Admin & documents (encrypted intake) | Documents | Admin |
+| Recipient registry (register, revoke) | Recipients (+ self-service key setup under My documents) | Admin / Submitter |
+| Distribution wizard | Share | Admin |
+| Recipient decrypt & release (5-step timeline, viewer, download) | My documents | Submitter |
+| Investigator and leak lab (report, PDF/JSON export) | Check a file / Evidence | Submitter, Admin (Auditor: Submissions) |
+| 4-node quorum ledger (toggle nodes, blocks, verifier export) | Ledger | Admin (Auditor: read-only) |
+| Golden path + attack simulator | Tests and demo / Security tests | Admin (Auditor: attacks only) |
+| Tamper-evident audit trail | Activity | Admin, Auditor |
+
+Admins and auditors can switch on **Technical details** (top bar) to see hashes, key IDs and block links.
+The attack tests now run for real against throw-away copies of the ledger and registry; live data is never touched.
+
+## Supported file types (v3.3)
+Upload documents or check evidence in: **PDF, Word (.doc/.docx), PowerPoint (.ppt/.pptx), Excel (.xls/.xlsx), OpenDocument (.odt/.odp/.ods), RTF, TXT, CSV, PNG, JPEG, GIF, BMP, WebP, TIFF**.
+- Types are detected from file *content*, not the extension. Unsupported files get 415, damaged ones 422.
+- PDFs and PNG/JPEG are stored as-is; GIF/BMP/WebP/TIFF become PNG; Office/OpenDocument/RTF/TXT/CSV are converted to PDF at intake so every released copy carries its tracking mark (released as PDF, images as PNG).
+- Office conversion needs **LibreOffice** on the server (`apt install libreoffice`); without it those uploads return 501 with a clear message and PDF/images still work.
+- Evidence checking also accepts Office files: embedded pictures (e.g. a screenshot pasted into a deck) are searched first, then the file is rendered to PDF.
+- `GET /formats` reports what the server supports.

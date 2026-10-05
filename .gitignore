@@ -24,6 +24,7 @@ evidence/
 # Environment and secret files
 .env
 .env.*
+!.env.example
 *.env
 *.secret
 *.token

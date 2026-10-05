@@ -5,6 +5,7 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from pqcrypto.kem import ml_kem_768 as _kem
 from pqcrypto.sign import ml_dsa_65 as _dsa
+from .config import ConfigError, env
 
 EVENT_DOMAIN = b"TRACEVAULT-EVENT-v1\n"
 
@@ -48,3 +49,29 @@ def dsa_verify(pk: bytes, msg: bytes, sig: bytes) -> bool:
         return _dsa.verify(pk, msg, sig) is not False
     except Exception:
         return False
+
+# --- Secrets loaded from the environment (never from flat files) ---
+def key_from_env(name: str, length: int = 32) -> bytes:
+    """Read a base64-encoded symmetric key of exactly `length` bytes from env var `name`."""
+    try:
+        raw = b64d(env(name))
+    except ConfigError:
+        raise
+    except Exception:
+        raise ConfigError(f"{name} is not valid base64")
+    if len(raw) != length:
+        raise ConfigError(f"{name} must decode to {length} bytes (got {len(raw)})")
+    return raw
+
+def keypair_from_env(name: str) -> tuple[bytes, bytes]:
+    """Read an ML-DSA keypair stored as '<b64 public>:<b64 secret>' in env var `name`."""
+    try:
+        pk, sk = env(name).split(":")
+        return b64d(pk), b64d(sk)
+    except ConfigError:
+        raise
+    except Exception:
+        raise ConfigError(f"{name} must be '<base64 public key>:<base64 secret key>'")
+
+def keypair_to_env(pk: bytes, sk: bytes) -> str:
+    return b64e(pk) + ":" + b64e(sk)

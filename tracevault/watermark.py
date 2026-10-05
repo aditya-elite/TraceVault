@@ -191,14 +191,50 @@ class ImageProtector(ContentProtector):
         ok, res = cv2.imencode(".png", cv2.cvtColor(marked, cv2.COLOR_RGB2BGR))
         return res.tobytes()
 
-def decode_evidence(data: bytes):
-    """Detect type and return (kind, [RGB images]) or (None, [])."""
-    if data[:5] == b"%PDF-":
+def protector_for(content: bytes) -> "ContentProtector":
+    """PDF content -> PdfProtector; anything else (PNG/JPEG after intake normalisation) -> ImageProtector."""
+    return PdfProtector() if content[:5] == b"%PDF-" else ImageProtector()
+
+def decode_evidence(data: bytes, filename: str = ""):
+    """Detect type and return (kind, [RGB images]) or (None, []).
+    PDFs and images are read directly; Office/OpenDocument files are searched for embedded pictures (e.g. a
+    screenshot of a protected page pasted into a deck) and, failing that, rendered to PDF when LibreOffice exists."""
+    from . import formats as F
+    kind = F.detect(data, filename)
+    if kind == "pdf":
         try:
             return "pdf", PdfProtector().to_images(data)
         except Exception:
             return None, []
-    arr = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
-    if arr is None:
-        return None, []
-    return "image", [cv2.cvtColor(arr, cv2.COLOR_BGR2RGB)]
+    if kind in F.IMAGES:
+        try:
+            if kind in ("png", "jpeg"):
+                arr = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
+                if arr is not None:
+                    return "image", [cv2.cvtColor(arr, cv2.COLOR_BGR2RGB)]
+            rgb = F._decode_image(data)
+        except Exception:
+            return None, []
+        return ("image", [rgb]) if rgb is not None else (None, [])
+    if kind in F.OFFICE and kind not in ("txt", "csv"):
+        imgs = F.embedded_images(data, kind) if kind in F.ZIP_OFFICE else []
+        if imgs:
+            return "office", imgs
+        try:
+            return "office", PdfProtector().to_images(F.office_to_pdf(data, kind))
+        except Exception:
+            return None, []
+    return None, []
+
+def extract_images_robust(images: list) -> dict:
+    """Try all images together, then (for multi-image files such as decks with logos) each one alone."""
+    res = extract_images(images)
+    if res["status"] == "ok" or len(images) < 2:
+        return res
+    for im in images[:12]:
+        r = extract_images([im])
+        if r["status"] == "ok" or r["strength"] > res["strength"]:
+            res = r
+        if r["status"] == "ok":
+            break
+    return res

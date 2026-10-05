@@ -93,7 +93,7 @@ def generate_report_pdf(report: dict) -> bytes:
     case_info = [
         [Paragraph("<b>Case ID:</b>", bold_body), Paragraph(report.get("case_id", "N/A"), body_style),
          Paragraph("<b>Submitted At:</b>", bold_body), Paragraph(report.get("submitted_at", "N/A"), body_style)],
-        [Paragraph("<b>Investigator:</b>", bold_body), Paragraph(report.get("investigator", "N/A"), body_style),
+        [Paragraph("<b>Submitted by:</b>", bold_body), Paragraph(report.get("investigator", "N/A"), body_style),
          Paragraph("<b>Evidence File:</b>", bold_body), Paragraph(report.get("evidence_file", "N/A"), body_style)],
         [Paragraph("<b>SHA3-256 Digest:</b>", bold_body), Paragraph(f"<font size='7'>{report.get('evidence_sha3_256', 'N/A')}</font>", body_style), "", ""]
     ]

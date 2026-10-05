@@ -20,7 +20,6 @@ STEPS = ("decapsulate", "decrypt", "fingerprint", "sign", "ledger", "release")
 
 def decrypt_and_release(pkg: dict, keystore, ledger, registry, progress=lambda step, status: None,
                         protector: W.ContentProtector | None = None) -> Released:
-    protector = protector or W.PdfProtector()
     def run(step, fn):
         progress(step, "running")
         try: out = fn()
@@ -31,7 +30,7 @@ def decrypt_and_release(pkg: dict, keystore, ledger, registry, progress=lambda s
     plaintext = run("decrypt", lambda: package.open_package(pkg, kid, keystore))   # includes ML-KEM decapsulation
     doc_hash = C.sha3(plaintext)
     event = events.new_event(pkg["document_id"], kid, doc_hash)
-    protected = run("fingerprint", lambda: protector.embed(plaintext, W.make_payload(event["watermark_digest"])))
+    protected = run("fingerprint", lambda: (protector or W.protector_for(plaintext)).embed(plaintext, W.make_payload(event["watermark_digest"])))
     del plaintext
     sig = run("sign", lambda: keystore.sign(C.event_message(event)))
     record = run("ledger", lambda: ledger.commit(event, sig, kid, registry))

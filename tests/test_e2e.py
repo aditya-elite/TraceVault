@@ -70,7 +70,7 @@ def test_api_roles_and_no_private_keys(tmp_path, pdf):
     from fastapi.testclient import TestClient
     from tracevault.api import create_app
     from tracevault import crypto as C
-    c = TestClient(create_app(str(tmp_path / "d"), {"adm": {"password": "a", "role": "admin"}, "inv": {"password": "i", "role": "investigator"}}))
+    c = TestClient(create_app(str(tmp_path / "d"), {"adm": {"password": "a", "role": "admin"}, "inv": {"password": "i", "role": "auditor"}}))
     tok = lambda u, p: {"Authorization": "Bearer " + c.post("/auth/login", json={"username": u, "password": p}).json()["token"]}
     adm, inv = tok("adm", "a"), tok("inv", "i")
     assert c.post("/admin/documents", headers=inv, json={"title": "t", "content_b64": C.b64e(pdf)}).status_code == 403

@@ -74,7 +74,7 @@ class TraceVaultClient:
             if on_progress:
                 on_progress(ClientProgressUpdate(step, status, detail, attestations))
 
-        protector = protector or W.PdfProtector()
+        pass
         kid = self.keystore.key_id
 
         # 1. Decapsulate & Decrypt
@@ -92,7 +92,7 @@ class TraceVaultClient:
         try:
             event = events.new_event(pkg["document_id"], kid, doc_hash)
             payload = W.make_payload(event["watermark_digest"])
-            protected_pdf = protector.embed(plaintext, payload)
+            protected_pdf = (protector or W.protector_for(plaintext)).embed(plaintext, payload)
             del plaintext  # ensure plaintext is cleared immediately
             notify("fingerprint", "done", f"Fingerprint embedded (Session: {event['session_id']}, WM ID: {payload[:8].hex()})")
         except Exception as e:

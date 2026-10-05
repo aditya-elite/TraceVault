@@ -1,1802 +1,840 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TraceVault | Post-Quantum Encrypted PDF Distribution & Provenance</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg-darkest: #07090E;
-      --bg-darker: #0D111A;
-      --bg-card: rgba(17, 24, 39, 0.7);
-      --bg-card-hover: rgba(26, 36, 56, 0.8);
-      --border-subtle: rgba(255, 255, 255, 0.08);
-      --border-glow: rgba(0, 240, 255, 0.25);
-      
-      --cyan: #00F0FF;
-      --cyan-dim: rgba(0, 240, 255, 0.15);
-      --blue: #3B82F6;
-      --purple: #8B5CF6;
-      --emerald: #10B981;
-      --emerald-dim: rgba(16, 185, 129, 0.15);
-      --amber: #F59E0B;
-      --rose: #F43F5E;
-      --rose-dim: rgba(244, 63, 94, 0.15);
-      
-      --text-main: #F1F5F9;
-      --text-muted: #94A3B8;
-      --text-dim: #64748B;
-      
-      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      --font-mono: 'JetBrains Mono', monospace;
-    }
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TraceVault</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 3l11 4v8c0 7-5 12-11 14C10 27 5 22 5 15V7z' fill='%2322507E'/%3E%3Cpath d='M11 16l4 4 7-8' fill='none' stroke='%23fff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+:root{
+  --ink:#16212F; --slate:#4A5A6E; --fog:#EDF0F4; --vellum:#FAFBFC; --surface:#FFFFFF; --line:#D6DCE4;
+  --seal:#22507E; --seal-ink:#FFFFFF; --ok:#17724A; --ok-bg:#E3F3EA; --warn:#8A5200; --warn-bg:#FBEFD5;
+  --bad:#B3261E; --bad-bg:#FBE4E2; --shadow:0 1px 2px rgba(22,33,47,.06),0 8px 24px rgba(22,33,47,.08);
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){
+  --ink:#E8EDF3; --slate:#9BAABB; --fog:#0F1620; --vellum:#131C27; --surface:#18222F; --line:#2B3949;
+  --seal:#6FA3D8; --seal-ink:#0F1620; --ok:#5CCB92; --ok-bg:#12301F; --warn:#F0B35A; --warn-bg:#34260F;
+  --bad:#FF8A80; --bad-bg:#3A1816; --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;color-scheme:light dark}
+body{margin:0;background:var(--fog);color:var(--ink);font:16px/1.5 var(--sans)}
+h1,h2,h3{font-family:var(--serif);font-weight:600;letter-spacing:-.01em;line-height:1.2;margin:0}
+h1{font-size:1.9rem} h2{font-size:1.35rem} h3{font-size:1.05rem}
+p{margin:0}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--seal);outline-offset:2px;border-radius:4px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.muted{color:var(--slate)}
+svg.i{width:1.15em;height:1.15em;flex:none;vertical-align:-.2em}
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      background-color: var(--bg-darkest);
-      color: var(--text-main);
-      font-family: var(--font-sans);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      background-image: 
-        radial-gradient(circle at 15% 15%, rgba(0, 240, 255, 0.04) 0%, transparent 40%),
-        radial-gradient(circle at 85% 85%, rgba(139, 92, 246, 0.05) 0%, transparent 40%);
-      background-attachment: fixed;
-    }
+/* buttons & fields */
+.btn{display:inline-flex;align-items:center;gap:.5rem;min-height:40px;padding:.45rem 1rem;border-radius:8px;border:1px solid var(--line);background:var(--surface);cursor:pointer;font-weight:600}
+.btn:hover{border-color:var(--slate)}
+.btn.primary{background:var(--seal);border-color:var(--seal);color:var(--seal-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.danger{color:var(--bad)}
+.btn.small{min-height:32px;padding:.2rem .65rem;font-size:.875rem}
+.btn[disabled]{opacity:.55;cursor:progress}
+.field{display:grid;gap:.3rem;margin-bottom:1rem}
+.field label{font-weight:600;font-size:.9rem}
+.field input,.field select{min-height:44px;padding:.5rem .75rem;border:1px solid var(--line);border-radius:8px;background:var(--surface);width:100%}
+.err{color:var(--bad);font-size:.9rem;min-height:1.4em;margin:.2rem 0 .7rem}
+.spin{width:1em;height:1em;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .8s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
 
-    /* Scrollbar */
-    ::-webkit-scrollbar { width: 8px; height: 8px; }
-    ::-webkit-scrollbar-track { background: var(--bg-darker); }
-    ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: rgba(0, 240, 255, 0.4); }
+/* login */
+.login{min-height:100vh;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr)}
+.login-art{position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;gap:2.5rem;padding:3rem 3.5rem;color:#EAF0F7;
+  background:radial-gradient(900px 520px at 12% 8%,#27466b 0%,rgba(39,70,107,0) 62%),#16212F}
+.login-art .brand{color:#fff;position:relative}
+.login-art .pitch{position:relative;z-index:1;display:grid;gap:2rem;max-width:30rem}
+.login-art h1{font-size:clamp(2.2rem,4vw,3.2rem);line-height:1.08;color:#fff}
+.points{list-style:none;margin:0;padding:0;display:grid;gap:1.1rem}
+.points li{display:flex;gap:.9rem;align-items:flex-start;color:#C3D0E0;line-height:1.45}
+.points .pi{flex:none;width:2.4rem;height:2.4rem;border-radius:50%;display:grid;place-items:center;background:rgba(111,163,216,.16);color:#9CC3EA}
+.points .pi svg{width:1.2rem;height:1.2rem}
+.login-art svg.seal{position:absolute;right:-150px;bottom:-150px;width:440px;height:440px;opacity:.12;pointer-events:none;z-index:0}
+.login-form{display:grid;place-items:center;padding:2rem;background:var(--vellum)}
+.login-card{width:100%;max-width:400px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:2.25rem 2rem 1.75rem;box-shadow:var(--shadow)}
+.login-card h2{font-size:1.65rem;margin-bottom:.35rem}
+.login-card .lead{color:var(--slate);margin-bottom:1.6rem}
+.login-card .foot{display:flex;gap:.5rem;align-items:center;justify-content:center;color:var(--slate);font-size:.85rem;margin-top:1.4rem;padding-top:1.1rem;border-top:1px solid var(--line)}
+.pw{position:relative}
+.pw input{padding-right:4.2rem}
+.pw button{position:absolute;right:.35rem;top:50%;transform:translateY(-50%);background:none;border:0;cursor:pointer;color:var(--seal);font-weight:600;padding:.4rem .6rem;border-radius:6px}
+.brand{display:flex;align-items:center;gap:.6rem;font-family:var(--serif);font-weight:700;font-size:1.25rem}
+.brand svg{width:28px;height:28px}
+@media(max-width:860px){.login{grid-template-columns:1fr}.login-art{padding:1.5rem 1.5rem 1.75rem;gap:1.25rem}.login-art .points{display:none}.login-art svg.seal{width:240px;height:240px;right:-70px;bottom:-70px}.login-form{padding:1.25rem}.login-card{padding:1.75rem 1.4rem 1.4rem}}
 
-    /* Top Navigation */
-    header {
-      background: rgba(13, 17, 26, 0.85);
-      backdrop-filter: blur(16px);
-      border-bottom: 1px solid var(--border-subtle);
-      padding: 0.85rem 1.75rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      position: sticky;
-      top: 0;
-      z-index: 50;
-    }
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 0.85rem;
-    }
-    .brand-logo {
-      width: 38px;
-      height: 38px;
-      background: linear-gradient(135deg, var(--cyan), var(--blue));
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 800;
-      font-size: 1.25rem;
-      color: #07090E;
-      box-shadow: 0 0 20px rgba(0, 240, 255, 0.35);
-    }
-    .brand-title {
-      font-weight: 700;
-      font-size: 1.2rem;
-      letter-spacing: -0.02em;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    .brand-badge {
-      font-size: 0.65rem;
-      background: rgba(0, 240, 255, 0.1);
-      color: var(--cyan);
-      border: 1px solid rgba(0, 240, 255, 0.3);
-      padding: 0.15rem 0.5rem;
-      border-radius: 20px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-    .nav-actions {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-    }
-    .user-pill {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      background: var(--bg-card);
-      border: 1px solid var(--border-subtle);
-      padding: 0.4rem 0.85rem;
-      border-radius: 30px;
-      font-size: 0.85rem;
-    }
-    .role-badge {
-      font-size: 0.7rem;
-      font-weight: 700;
-      padding: 0.15rem 0.5rem;
-      border-radius: 12px;
-      text-transform: uppercase;
-    }
-    .role-admin { background: rgba(59, 130, 246, 0.2); color: #60A5FA; }
-    .role-recipient { background: rgba(16, 185, 129, 0.2); color: #34D399; }
-    .role-investigator { background: rgba(245, 158, 11, 0.2); color: #FBBF24; }
+/* shell */
+.top{display:flex;align-items:center;gap:1rem;padding:.6rem 1.25rem;background:#16212F;border-bottom:1px solid #243247;color:#EAF0F7;flex-wrap:wrap}
+.top .brand{color:#fff}
+.top .who{margin-left:auto;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.top .btn{background:transparent;border-color:#3A4B60;color:#EAF0F7}
+.rolebadge{font-size:.85rem;padding:.15rem .6rem;border-radius:99px;background:#2A3B52;color:#D5E2F2}
+nav.tabs{display:flex;gap:.25rem;padding:0 1.25rem;background:var(--surface);border-bottom:1px solid var(--line);overflow-x:auto}
+nav.tabs button{background:none;border:0;border-bottom:3px solid transparent;padding:.8rem .9rem;cursor:pointer;font-weight:600;color:var(--slate);white-space:nowrap}
+nav.tabs button[aria-current=page]{color:var(--ink);border-bottom-color:var(--seal)}
+main>*{min-width:0}
+main{max-width:1100px;margin:0 auto;padding:1.5rem 1.25rem 4rem;display:grid;gap:1.75rem}
+.section-head{display:flex;align-items:end;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:.75rem}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.pad{padding:1.25rem}
 
-    /* Navigation Bar */
-    nav {
-      background: var(--bg-darker);
-      border-bottom: 1px solid var(--border-subtle);
-      padding: 0.4rem 1.75rem;
-      display: flex;
-      gap: 0.5rem;
-      overflow-x: auto;
-    }
-    .nav-tab {
-      background: transparent;
-      border: none;
-      color: var(--text-muted);
-      padding: 0.6rem 1.1rem;
-      border-radius: 8px;
-      font-size: 0.88rem;
-      font-weight: 500;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      transition: all 0.2s ease;
-      white-space: nowrap;
-    }
-    .nav-tab:hover {
-      color: var(--text-main);
-      background: rgba(255, 255, 255, 0.05);
-    }
-    .nav-tab.active {
-      color: var(--cyan);
-      background: rgba(0, 240, 255, 0.08);
-      font-weight: 600;
-      box-shadow: inset 0 -2px 0 var(--cyan);
-    }
+/* figures strip */
+.figures{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.figures>div{padding:1rem 1.25rem;border-left:1px solid var(--line)}
+.figures>div:first-child{border-left:0}
+.figures b{display:block;font:600 2rem/1.1 var(--serif)}
+@media(max-width:600px){.figures>div{border-left:0;border-top:1px solid var(--line)}.figures>div:first-child{border-top:0}}
 
-    /* Main Container */
-    main {
-      flex: 1;
-      padding: 2rem 1.75rem;
-      max-width: 1440px;
-      width: 100%;
-      margin: 0 auto;
-    }
+/* drop zone */
+.drop{display:grid;place-items:center;text-align:center;gap:.5rem;padding:2.5rem 1.5rem;border:2px dashed var(--slate);border-radius:14px;background:var(--surface);cursor:pointer;transition:background .15s,border-color .15s}
+.drop:hover,.drop.over{border-color:var(--seal);background:color-mix(in srgb,var(--seal) 8%,var(--surface))}
+.drop.over{border-style:solid}
+.drop svg{width:44px;height:44px;color:var(--seal)}
+.drop strong{font:600 1.2rem var(--serif)}
+.tray{display:grid;gap:.75rem;margin-top:1rem}
+.up{display:grid;grid-template-columns:auto 1fr auto;gap:1rem;align-items:center;padding:1rem 1.25rem;border-radius:12px;border:1px solid var(--line);background:var(--surface)}
+.up .name{font-weight:600;overflow-wrap:anywhere}
+.up .bar{height:6px;border-radius:3px;background:var(--fog);overflow:hidden;margin-top:.5rem}
+.up .bar i{display:block;height:100%;width:40%;background:var(--seal);animation:slide 1.1s ease-in-out infinite}
+@keyframes slide{0%{margin-left:-40%}100%{margin-left:100%}}
+.stamp{width:56px;height:56px;display:grid;place-items:center;border-radius:50%}
+.stamp svg{width:32px;height:32px}
+.up.done.verified{border-color:var(--ok);background:var(--ok-bg)} .up.done.inconclusive{border-color:var(--warn);background:var(--warn-bg)} .up.done.failed,.up.error{border-color:var(--bad);background:var(--bad-bg)}
+.up.done .stamp{animation:stamp .45s cubic-bezier(.2,1.4,.4,1)}
+@keyframes stamp{from{transform:scale(1.8) rotate(-14deg);opacity:0}to{transform:none;opacity:1}}
+.verified .stamp{color:var(--ok)} .inconclusive .stamp{color:var(--warn)} .failed .stamp,.error .stamp{color:var(--bad)}
+@media(max-width:560px){.up{grid-template-columns:auto 1fr}.up .act{grid-column:1/-1}}
 
-    /* Screen Views */
-    .view-screen { display: none; }
-    .view-screen.active { display: block; animation: fadeIn 0.25s ease-out; }
+/* tables */
+.tablewrap{position:relative;overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;min-width:560px}
+th,td{text-align:left;padding:.75rem 1rem;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-size:.85rem;font-weight:600;color:var(--slate);background:var(--vellum);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+tbody tr.click{cursor:pointer} tbody tr.click:hover{background:var(--vellum)}
+td.id{white-space:nowrap;white-space:nowrap;font-variant-numeric:tabular-nums;font-weight:600}
+.empty{padding:2.5rem 1rem;text-align:center;color:var(--slate)}
+.chip{display:inline-flex;align-items:center;gap:.4rem;padding:.2rem .65rem .2rem .45rem;border-radius:99px;font-weight:600;font-size:.9rem;white-space:nowrap}
+.chip.verified{background:var(--ok-bg);color:var(--ok)} .chip.inconclusive{background:var(--warn-bg);color:var(--warn)} .chip.failed{background:var(--bad-bg);color:var(--bad)}
+.toolbar{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.75rem}
+.toolbar input,.toolbar select{min-height:40px;padding:.4rem .7rem;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+.toolbar input{flex:1;min-width:180px}
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(6px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
+/* ledger */
+.health{display:flex;gap:1.25rem;align-items:center;padding:1.5rem}
+.health .stamp{width:84px;height:84px}.health .stamp svg{width:50px;height:50px}
+.health.verified{background:var(--ok-bg)} .health.failed{background:var(--bad-bg)}
+.health.verified .stamp{color:var(--ok)} .health.failed .stamp{color:var(--bad)}
+.nodes{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:0}
+.node{padding:1rem 1.25rem;border-left:1px solid var(--line);display:grid;gap:.4rem;align-content:start}
+.node:first-child{border-left:0}
+.dot{width:.7em;height:.7em;border-radius:50%;display:inline-block;margin-right:.4rem;background:var(--ok)} .dot.off{background:var(--bad)}
 
-    /* Grid & Cards */
-    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
-    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
-    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
-    @media (max-width: 1024px) {
-      .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
-    }
+/* dialogs & toast */
+dialog{border:0;border-radius:14px;padding:0;width:min(560px,calc(100vw - 2rem));max-height:calc(100vh - 2rem);background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
+dialog::backdrop{background:rgba(10,16,24,.55)}
+dialog .hd{display:flex;justify-content:space-between;align-items:start;gap:1rem;padding:1.25rem 1.25rem .5rem}
+dialog .bd{padding:.5rem 1.25rem 1.25rem;overflow:auto;max-height:70vh}
+dialog .ft{display:flex;justify-content:flex-end;gap:.5rem;padding:1rem 1.25rem;border-top:1px solid var(--line);flex-wrap:wrap}
+.verdict{display:flex;gap:1rem;align-items:center;padding:1rem;border-radius:10px;margin-bottom:1rem}
+.verdict.verified{background:var(--ok-bg);color:var(--ok)} .verdict.inconclusive{background:var(--warn-bg);color:var(--warn)} .verdict.failed{background:var(--bad-bg);color:var(--bad)}
+.verdict .stamp{width:52px;height:52px} .verdict p{color:var(--ink)}
+dl.facts{display:grid;grid-template-columns:max-content 1fr;gap:.35rem 1rem;margin:0 0 1rem}
+dl.facts dt{color:var(--slate)} dl.facts dd{margin:0;overflow-wrap:anywhere}
+ul.checks{list-style:none;padding:0;margin:0;display:grid;gap:.5rem}
+ul.checks li{display:flex;gap:.6rem;align-items:start}
+ul.checks .ok{color:var(--ok)} ul.checks .no{color:var(--bad)}
+#toast{position:fixed;left:50%;bottom:1.25rem;transform:translateX(-50%);display:grid;gap:.5rem;z-index:50;width:min(480px,calc(100vw - 2rem))}
+#toast div{background:var(--ink);color:var(--vellum);padding:.7rem 1rem;border-radius:10px;box-shadow:var(--shadow)}
+#toast div.bad{background:var(--bad);color:#fff}
 
-    .card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-subtle);
-      border-radius: 14px;
-      padding: 1.5rem;
-      backdrop-filter: blur(12px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-      position: relative;
-    }
-    .card:hover {
-      border-color: rgba(255, 255, 255, 0.14);
-    }
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1.25rem;
-      border-bottom: 1px solid var(--border-subtle);
-      padding-bottom: 0.85rem;
-    }
-    .card-title {
-      font-size: 1.05rem;
-      font-weight: 600;
-      letter-spacing: -0.01em;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    /* Buttons */
-    .btn {
-      background: var(--cyan);
-      color: #07090E;
-      border: none;
-      padding: 0.6rem 1.2rem;
-      border-radius: 8px;
-      font-weight: 600;
-      font-size: 0.85rem;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      transition: all 0.2s ease;
-      text-decoration: none;
-    }
-    .btn:hover {
-      box-shadow: 0 0 16px rgba(0, 240, 255, 0.5);
-      transform: translateY(-1px);
-    }
-    .btn-secondary {
-      background: rgba(255, 255, 255, 0.08);
-      color: var(--text-main);
-      border: 1px solid var(--border-subtle);
-    }
-    .btn-secondary:hover {
-      background: rgba(255, 255, 255, 0.12);
-      box-shadow: none;
-    }
-    .btn-danger {
-      background: var(--rose);
-      color: #FFF;
-    }
-    .btn-danger:hover {
-      box-shadow: 0 0 16px rgba(244, 63, 94, 0.5);
-    }
-    .btn-emerald {
-      background: var(--emerald);
-      color: #07090E;
-    }
-    .btn-emerald:hover {
-      box-shadow: 0 0 16px rgba(16, 185, 129, 0.5);
-    }
-
-    /* Forms & Inputs */
-    .form-group {
-      margin-bottom: 1.2rem;
-    }
-    .form-label {
-      display: block;
-      font-size: 0.82rem;
-      font-weight: 500;
-      color: var(--text-muted);
-      margin-bottom: 0.4rem;
-    }
-    .form-input, .form-select {
-      width: 100%;
-      background: rgba(0, 0, 0, 0.35);
-      border: 1px solid var(--border-subtle);
-      border-radius: 8px;
-      padding: 0.65rem 0.9rem;
-      color: var(--text-main);
-      font-family: var(--font-sans);
-      font-size: 0.9rem;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-    .form-input:focus, .form-select:focus {
-      border-color: var(--cyan);
-      box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
-    }
-
-    /* Dropzone */
-    .dropzone {
-      border: 2px dashed rgba(0, 240, 255, 0.3);
-      background: rgba(0, 240, 255, 0.02);
-      border-radius: 12px;
-      padding: 2.5rem 1.5rem;
-      text-align: center;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .dropzone:hover, .dropzone.dragover {
-      border-color: var(--cyan);
-      background: rgba(0, 240, 255, 0.06);
-    }
-
-    /* Tables */
-    .data-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.85rem;
-    }
-    .data-table th {
-      text-align: left;
-      padding: 0.75rem 0.85rem;
-      color: var(--text-dim);
-      font-weight: 600;
-      border-bottom: 1px solid var(--border-subtle);
-      text-transform: uppercase;
-      font-size: 0.72rem;
-      letter-spacing: 0.05em;
-    }
-    .data-table td {
-      padding: 0.85rem;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-      color: var(--text-muted);
-    }
-    .data-table tr:hover td {
-      background: rgba(255, 255, 255, 0.02);
-      color: var(--text-main);
-    }
-
-    /* Code & Mono */
-    .mono {
-      font-family: var(--font-mono);
-      font-size: 0.8rem;
-    }
-    .hash-badge {
-      font-family: var(--font-mono);
-      font-size: 0.75rem;
-      background: rgba(0, 0, 0, 0.4);
-      padding: 0.2rem 0.5rem;
-      border-radius: 6px;
-      border: 1px solid var(--border-subtle);
-      color: var(--cyan);
-    }
-
-    /* Decryption Timeline Component */
-    .timeline-container {
-      margin: 1.5rem 0;
-      background: rgba(0, 0, 0, 0.4);
-      border-radius: 12px;
-      border: 1px solid var(--border-subtle);
-      padding: 1.5rem;
-    }
-    .timeline-steps {
-      display: flex;
-      justify-content: space-between;
-      position: relative;
-    }
-    .timeline-steps::before {
-      content: '';
-      position: absolute;
-      top: 22px;
-      left: 30px;
-      right: 30px;
-      height: 3px;
-      background: rgba(255, 255, 255, 0.1);
-      z-index: 1;
-    }
-    .timeline-step {
-      position: relative;
-      z-index: 2;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.5rem;
-      text-align: center;
-      width: 110px;
-    }
-    .step-circle {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      background: var(--bg-darker);
-      border: 2px solid var(--border-subtle);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: 0.85rem;
-      color: var(--text-dim);
-      transition: all 0.3s;
-    }
-    .timeline-step.active .step-circle {
-      border-color: var(--cyan);
-      color: var(--cyan);
-      box-shadow: 0 0 18px rgba(0, 240, 255, 0.6);
-      animation: pulse 1.5s infinite;
-    }
-    .timeline-step.completed .step-circle {
-      background: var(--emerald);
-      border-color: var(--emerald);
-      color: #07090E;
-    }
-    .timeline-step.failed .step-circle {
-      background: var(--rose);
-      border-color: var(--rose);
-      color: #FFF;
-    }
-    .step-label {
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-    .timeline-step.completed .step-label { color: var(--emerald); }
-    .timeline-step.active .step-label { color: var(--cyan); }
-    .timeline-step.failed .step-label { color: var(--rose); }
-
-    @keyframes pulse {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.08); }
-    }
-
-    /* Node Cards */
-    .node-card {
-      background: rgba(0, 0, 0, 0.35);
-      border: 1px solid var(--border-subtle);
-      border-radius: 10px;
-      padding: 1rem;
-      position: relative;
-    }
-    .node-card.online { border-left: 3px solid var(--emerald); }
-    .node-card.offline { border-left: 3px solid var(--rose); opacity: 0.6; }
-    .node-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 0.5rem;
-    }
-
-    /* Status Pill */
-    .status-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      font-size: 0.72rem;
-      font-weight: 700;
-      padding: 0.2rem 0.6rem;
-      border-radius: 12px;
-      text-transform: uppercase;
-    }
-    .status-verified { background: rgba(16, 185, 129, 0.15); color: #34D399; border: 1px solid rgba(16, 185, 129, 0.3); }
-    .status-denied { background: rgba(244, 63, 94, 0.15); color: #FB7185; border: 1px solid rgba(244, 63, 94, 0.3); }
-    .status-warning { background: rgba(245, 158, 11, 0.15); color: #FCD34D; border: 1px solid rgba(245, 158, 11, 0.3); }
-
-    /* In-App PDF Previewer */
-    .pdf-viewer-frame {
-      width: 100%;
-      height: 520px;
-      border: 1px solid var(--border-subtle);
-      border-radius: 10px;
-      background: #1E293B;
-    }
-
-    /* Modal */
-    .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.8);
-      backdrop-filter: blur(8px);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 100;
-    }
-    .modal-overlay.active { display: flex; }
-    .modal-content {
-      background: var(--bg-darker);
-      border: 1px solid var(--border-subtle);
-      border-radius: 16px;
-      width: 90%;
-      max-width: 600px;
-      padding: 2rem;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
-    }
-  </style>
+/* v3.1 additions */
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1.25rem}
+.row{display:flex;gap:.75rem;align-items:center;flex-wrap:wrap}
+.spacer{flex:1}
+td code.h{white-space:nowrap}
+code.h{font:.8rem/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--fog);padding:.1rem .4rem;border-radius:4px;overflow-wrap:anywhere}
+.techswitch{display:flex;align-items:center;gap:.4rem;font-size:.875rem;color:#C9D6E6;cursor:pointer}
+.techswitch input{width:1rem;height:1rem}
+.banner{display:flex;gap:1rem;align-items:center;padding:1rem 1.25rem;border-radius:12px;border:1px solid var(--line)}
+.banner.verified{background:var(--ok-bg);border-color:var(--ok);color:var(--ok)} .banner.failed{background:var(--bad-bg);border-color:var(--bad);color:var(--bad)} .banner.inconclusive{background:var(--warn-bg);border-color:var(--warn);color:var(--warn)}
+.banner p,.banner h3{color:var(--ink)}
+.banner .stamp{width:48px;height:48px}
+.hint{font-size:.9rem;color:var(--slate);margin-top:.35rem}
+.timeline{list-style:none;margin:0;padding:0;display:grid;gap:.25rem}
+.timeline li{display:flex;gap:.75rem;align-items:center;padding:.6rem .75rem;border-radius:8px;color:var(--slate)}
+.timeline li .dotk{width:1.6rem;height:1.6rem;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;flex:none;background:var(--surface)}
+.timeline li.active{color:var(--ink);background:var(--fog)} .timeline li.active .dotk{border-color:var(--seal)}
+.timeline li.done{color:var(--ink)} .timeline li.done .dotk{background:var(--ok);border-color:var(--ok);color:#fff}
+.timeline li.failed{color:var(--bad);background:var(--bad-bg)} .timeline li.failed .dotk{background:var(--bad);border-color:var(--bad);color:#fff}
+.timeline svg{width:.95rem;height:.95rem}
+.viewer{display:grid;gap:1rem;justify-items:center;padding:1.25rem;background:var(--fog);border-radius:12px}
+.viewer figure{margin:0;background:#fff;padding:10px;border-radius:8px;box-shadow:var(--shadow);width:100%;max-width:560px}
+.viewer img{width:100%;height:auto;display:block;border:1px solid #cbd5e1;border-radius:4px}
+.viewer figcaption{font-size:.8rem;color:#475569;margin-bottom:6px;display:flex;justify-content:space-between}
+.steps{list-style:none;margin:0;padding:0;display:grid;gap:.5rem}
+.steps li{display:flex;gap:.6rem;align-items:start}
+.steps .ok{color:var(--ok)} .steps .no{color:var(--bad)}
+.pick{display:grid;gap:.4rem;border:1px solid var(--line);border-radius:8px;padding:.6rem .8rem;max-height:240px;overflow:auto;background:var(--surface)}
+.pick label{display:flex;gap:.6rem;align-items:center;cursor:pointer}
+.pick input{width:1.1rem;height:1.1rem}
+.cardrow{display:grid;gap:.6rem;padding:1.25rem;align-content:start}
+.result{display:grid;gap:1rem}
+.list{margin:.5rem 0 0;padding-left:1.1rem;color:var(--slate);display:grid;gap:.35rem}
+.list b{color:var(--ink)}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media(max-width:640px){
+.evt thead{display:none}.evt,.evt tbody{display:block;width:100%;min-width:0}
+.evt tr{display:grid;grid-template-columns:1fr auto;gap:.25rem .75rem;padding:.8rem 1rem;border-top:1px solid var(--line)}.evt tr:first-child{border-top:0}
+.evt td{display:block;padding:0;border:0;white-space:normal}
+.evt .c-id{grid-column:1;grid-row:1;font-size:.95rem;word-break:break-all}.evt .c-st{grid-column:2;grid-row:1;justify-self:end}
+.evt .c-date,.evt .c-sub{grid-row:2;font-size:.85rem;color:var(--slate)}.evt .c-date{grid-column:1}.evt .c-sub{grid-column:2;justify-self:end}
+.evt .c-act{display:none}}
+</style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-verified" viewBox="0 0 24 24"><path d="M12 2.5l8 3v6c0 5-3.4 8.6-8 10-4.6-1.4-8-5-8-10v-6z" fill="currentColor" opacity=".16"/><path d="M12 2.5l8 3v6c0 5-3.4 8.6-8 10-4.6-1.4-8-5-8-10v-6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8.2 12.2l2.7 2.7 5-5.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-inconclusive" viewBox="0 0 24 24"><path d="M12 2.5l8 3v6c0 5-3.4 8.6-8 10-4.6-1.4-8-5-8-10v-6z" fill="currentColor" opacity=".16"/><path d="M12 2.5l8 3v6c0 5-3.4 8.6-8 10-4.6-1.4-8-5-8-10v-6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 7.5v5.5M12 16.2v.4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+  <symbol id="i-failed" viewBox="0 0 24 24"><path d="M12 3.2l9.5 16.6h-19z" fill="currentColor" opacity=".16"/><path d="M12 3.2l9.5 16.6h-19z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 9.5v5M12 17.2v.4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 15v4a1 1 0 001 1h14a1 1 0 001-1v-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 005.7 0l3-3a4 4 0 00-5.7-5.7l-1 1M14 10a4 4 0 00-5.7 0l-3 3a4 4 0 005.7 5.7l1-1" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.9"/></symbol>
+  <symbol id="i-doc" viewBox="0 0 24 24"><path d="M7 3h7l5 5v12a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1z M14 3v5h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+</svg>
+<div id="app"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<script>
+"use strict";
+/* ---------- tiny helpers ---------- */
+const S = { token: null, user: null, role: null, tab: null, tech: false, shareDoc: null };
+const store = {
+  get(k){ try { return sessionStorage.getItem(k); } catch { return null; } },
+  set(k,v){ try { sessionStorage.setItem(k,v); } catch {} },
+  del(k){ try { sessionStorage.removeItem(k); } catch {} }
+};
+function h(tag, attrs, ...kids){
+  const e = document.createElement(tag);
+  for (const [k,v] of Object.entries(attrs || {})){
+    if (v == null || v === false) continue;
+    if (k === 'class') e.className = v;
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else e.setAttribute(k, v === true ? '' : v);
+  }
+  for (const c of kids.flat(9)){ if (c == null || c === false) continue; e.append(c.nodeType ? c : document.createTextNode(String(c))); }
+  return e;
+}
+const SVGNS = 'http://www.w3.org/2000/svg';
+const icon = (n, cls='') => { const s = document.createElementNS(SVGNS,'svg'); s.setAttribute('class','i '+cls); s.setAttribute('aria-hidden','true'); const u = document.createElementNS(SVGNS,'use'); u.setAttribute('href','#i-'+n); s.append(u); return s; };
+const fmtDate = s => { const d = new Date(s); return isNaN(d) ? String(s || '') : d.toLocaleString(undefined,{dateStyle:'medium',timeStyle:'short'}); };
+const fmtEpoch = t => fmtDate(new Date(t*1000));
+const short = (x, n=14) => { x = String(x || ''); return h('code',{class:'h',title:x}, x.length > n ? x.slice(0,n) + '…' : x); };
+function toast(msg, bad){ const t = document.getElementById('toast'); const d = h('div',{class:bad?'bad':''},msg); t.append(d); while (t.children.length > 3) t.firstChild.remove(); setTimeout(()=>d.remove(), bad?7000:3500); }
+const isStaff = () => S.role !== 'submitter';
 
-  <!-- Top Header -->
-  <header>
-    <div class="brand">
-      <div class="brand-logo">TV</div>
-      <div>
-        <div class="brand-title">
-          TraceVault
-          <span class="brand-badge">NIST FIPS 203/204</span>
-        </div>
-        <div style="font-size: 0.72rem; color: var(--text-dim);">Post-Quantum Multi-Recipient PDF Distribution & Provenance</div>
-      </div>
-    </div>
+async function api(path, opt = {}){
+  const headers = {};
+  if (S.token) headers.Authorization = 'Bearer ' + S.token;
+  if (opt.body) headers['Content-Type'] = 'application/json';
+  let r;
+  try { r = await fetch(path, { method: opt.method || 'GET', headers, body: opt.body ? JSON.stringify(opt.body) : undefined }); }
+  catch { throw new Error('Cannot reach the server. Check your connection and try again.'); }
+  if (r.status === 401 && S.token && !opt.noLogout){ logout('Your session ended. Sign in again.'); throw new Error('Session ended'); }
+  if (!r.ok){
+    let d = null; try { d = await r.json(); } catch {}
+    const det = d && d.detail;
+    const e = new Error(typeof det === 'string' ? det : Array.isArray(det) ? det.map(x => x.msg).join('. ') : `Something went wrong (${r.status}).`);
+    e.data = d; e.status = r.status; throw e;
+  }
+  return opt.blob ? r.blob() : r.json();
+}
+async function download(path, name, btn){
+  const old = btn.textContent; btn.disabled = true; btn.textContent = 'Preparing…';
+  try { saveBlob(await api(path, { blob: true }), name); } catch(e){ toast(e.message, true); }
+  btn.disabled = false; btn.textContent = old;
+}
+function saveBlob(blob, name){
+  const a = h('a',{href:URL.createObjectURL(blob), download:name}); document.body.append(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
+}
+const b64ToBlob = (b64, type) => { const bin = atob(b64); const u = new Uint8Array(bin.length); for (let i=0;i<bin.length;i++) u[i] = bin.charCodeAt(i); return new Blob([u],{type}); };
+const fileToB64 = f => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1] || ''); r.onerror = () => rej(new Error('This file could not be read.')); r.readAsDataURL(f); });
 
-    <div class="nav-actions">
-      <div class="user-pill">
-        <span style="color: var(--text-dim);">User:</span>
-        <strong id="header-user">admin</strong>
-        <span id="header-role" class="role-badge role-admin">Admin</span>
-      </div>
+/* ---------- plain-language vocabulary ---------- */
+const CHECK_TEXT = {
+  'Evidence readable': 'The file could be opened',
+  'Watermark extraction': 'A tracking mark was found in the file',
+  'Ledger lookup': 'A matching record exists in the ledger',
+  'Recipient ML-DSA-65 signature': 'The record is signed by the person it names',
+  'Watermark digest binds event fields': 'The tracking mark matches the record',
+  'Document hash matches registered original': 'It matches the registered original document',
+  'Ledger integrity & quorum': 'The ledger is intact and its nodes agree'
+};
+const ACTION_TEXT = {
+  'login':'Signed in','login.failed':'Failed sign-in','password.change':'Changed password','evidence.submit':'Submitted evidence',
+  'evidence.recheck':'Re-checked authenticity','user.create':'Created a user','user.role':'Changed a role','user.delete':'Deleted a user',
+  'user.password_reset':'Reset a password','ledger.toggle_node':'Switched a ledger node','document.register':'Registered a document',
+  'recipient.register':'Registered a recipient','recipient.enroll':'Set up a recipient key','recipient.revoke':'Revoked a recipient',
+  'distribution.create':'Shared a document','recipient.decrypt_and_release':'Opened a shared document','recipient.release_denied':'Document release blocked',
+  'ledger.commit':'Recorded an event','demo.golden_path':'Ran the demo','simulate.tamper_ledger':'Ran a ledger-tampering test',
+  'simulate.key_substitution':'Ran a key-swap test','simulate.quorum_loss':'Ran a node-outage test'
+};
+const ROLE_TEXT = { submitter:'Submitter', auditor:'Auditor', admin:'Administrator' };
+const STEP_TEXT = { decrypt:'Unlock your copy', fingerprint:'Add your invisible tracking mark', sign:'Sign the event', ledger:'Record it in the ledger', release:'Release the document' };
 
-      <select id="role-switcher" class="form-select" style="width: auto; padding: 0.35rem 0.75rem; font-size: 0.8rem;" onchange="switchRole(this.value)">
-        <option value="admin">Switch to Admin</option>
-        <option value="alice">Switch to Recipient (Alice)</option>
-        <option value="bob" selected>Switch to Recipient (Bob)</option>
-        <option value="charlie">Switch to Recipient (Charlie)</option>
-        <option value="investigator">Switch to Investigator</option>
-      </select>
+/* ---------- reusable pieces ---------- */
+const stamp = v => h('span',{class:'stamp'}, icon(v));
+const chip = it => h('span',{class:'chip '+it.verdict}, icon(it.verdict), it.headline);
+const sectionHead = (title, ...right) => h('div',{class:'section-head'}, h('h1',{},title), h('div',{class:'row'}, right));
+const subHead = (title, ...right) => h('div',{class:'section-head'}, h('h2',{},title), h('div',{class:'row'}, right));
 
-      <button class="btn btn-secondary" onclick="runSeed()" title="Initialize demo users, sample PDF, and keys">
-        ⚡ Seed Demo Data
-      </button>
-    </div>
-  </header>
+function evidenceTable(items, { onOpen, empty, showSubmitter = true }){
+  if (!items.length) return h('div',{class:'tablewrap'}, h('div',{class:'empty'}, empty));
+  return h('div',{class:'tablewrap'}, h('table',{class:'evt'},
+    h('thead',{}, h('tr',{}, h('th',{},'Date'), h('th',{},'Evidence ID'), showSubmitter && h('th',{},'Submitter'), h('th',{},'Status'), h('th',{}, h('span',{class:'sr'},'Actions')))),
+    h('tbody',{}, items.map(it => h('tr',{class:'click', onclick:()=>onOpen(it)},
+      h('td',{class:'c-date'}, fmtDate(it.date)),
+      h('td',{class:'id c-id'}, it.case_id),
+      showSubmitter && h('td',{class:'c-sub'}, it.submitter),
+      h('td',{class:'c-st'}, chip(it)),
+      h('td',{class:'c-act'}, h('button',{class:'btn small', onclick:e=>{e.stopPropagation(); onOpen(it);}}, 'View'))
+    )))));
+}
 
-  <!-- Navigation Tabs -->
-  <nav id="nav-tabs">
-    <button class="nav-tab active" onclick="showScreen('screen-dashboard')">📊 System Overview</button>
-    <button class="nav-tab" onclick="showScreen('screen-admin')">📁 Admin & Documents</button>
-    <button class="nav-tab" onclick="showScreen('screen-recipients')">👥 Recipient Registry</button>
-    <button class="nav-tab" onclick="showScreen('screen-distribution')">📦 Distribution Wizard</button>
-    <button class="nav-tab" onclick="showScreen('screen-recipient-portal')">🔓 Recipient Decrypt & Release</button>
-    <button class="nav-tab" onclick="showScreen('screen-investigator')">🔍 Investigator & Leak Lab</button>
-    <button class="nav-tab" onclick="showScreen('screen-ledger')">⛓️ 4-Node Quorum Ledger</button>
-    <button class="nav-tab" onclick="showScreen('screen-demo')">🧪 Attack & Demo Simulator</button>
-    <button class="nav-tab" onclick="showScreen('screen-audit')">📜 Tamper-Evident Audit</button>
-  </nav>
+function modal(title, body, footer){
+  const d = h('dialog',{'aria-label':title},
+    h('div',{class:'hd'}, h('h2',{},title), h('button',{class:'btn small','aria-label':'Close', onclick:()=>d.close()}, icon('x'))),
+    h('div',{class:'bd'}, body), footer && h('div',{class:'ft'}, footer));
+  d.addEventListener('close', () => d.remove());
+  document.body.append(d); d.showModal(); return d;
+}
 
-  <!-- Main Content -->
-  <main>
+function formDialog(title, fields, submitLabel, onSubmit){
+  const err = h('p',{class:'err',role:'alert'});
+  const inputs = fields.map(f => f.options
+    ? h('select',{id:'f-'+f.name}, f.options.map(([v,l]) => h('option',{value:v}, l)))
+    : h('input',{id:'f-'+f.name,type:f.type||'text',autocomplete:f.auto||'off',required:true,minlength:f.min}));
+  const form = h('form',{}, fields.map((f,i)=>h('div',{class:'field'}, h('label',{for:'f-'+f.name},f.label), inputs[i], f.hint && h('span',{class:'hint'}, f.hint))), err);
+  const go = h('button',{class:'btn primary',type:'submit'}, submitLabel);
+  form.append(h('div',{class:'ft',style:'padding:0;border:0;margin-top:.5rem'}, h('button',{class:'btn',type:'button',onclick:()=>dlg.close()},'Cancel'), go));
+  const dlg = modal(title, form);
+  form.addEventListener('submit', async e => {
+    e.preventDefault(); err.textContent = ''; go.disabled = true;
+    try { await onSubmit(Object.fromEntries(fields.map((f,i)=>[f.name, inputs[i].value]))); dlg.close(); }
+    catch(ex){ err.textContent = ex.message; go.disabled = false; }
+  });
+  inputs[0].focus();
+}
 
-    <!-- SCREEN 1: Dashboard -->
-    <section id="screen-dashboard" class="view-screen active">
-      <div class="grid-4" style="margin-bottom: 1.5rem;">
-        <div class="card">
-          <div style="font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase;">Encrypted Documents</div>
-          <div id="stat-docs" style="font-size: 1.8rem; font-weight: 700; color: var(--cyan); margin: 0.3rem 0;">0</div>
-          <div style="font-size: 0.75rem; color: var(--emerald);">AES-256-GCM Vault at Rest</div>
-        </div>
-        <div class="card">
-          <div style="font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase;">Active Recipients</div>
-          <div id="stat-recips" style="font-size: 1.8rem; font-weight: 700; color: var(--blue); margin: 0.3rem 0;">0</div>
-          <div style="font-size: 0.75rem; color: var(--text-muted);">ML-KEM-768 / ML-DSA-65</div>
-        </div>
-        <div class="card">
-          <div style="font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase;">Ledger Quorum</div>
-          <div id="stat-quorum" style="font-size: 1.8rem; font-weight: 700; color: var(--emerald); margin: 0.3rem 0;">4 / 4</div>
-          <div style="font-size: 0.75rem; color: var(--emerald);">BFT Consensus Active (≥3 required)</div>
-        </div>
-        <div class="card">
-          <div style="font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase;">Investigated Cases</div>
-          <div id="stat-cases" style="font-size: 1.8rem; font-weight: 700; color: var(--amber); margin: 0.3rem 0;">0</div>
-          <div style="font-size: 0.75rem; color: var(--text-muted);">Decryption Provenance Verifications</div>
-        </div>
-      </div>
+/* ---------- evidence upload zone (drag & drop) ---------- */
+function evidenceUploader(onDone){
+  const MAX = 25 * 1024 * 1024;
+  const tray = h('div',{class:'tray','aria-live':'polite'});
+  const input = h('input',{type:'file',multiple:true,class:'sr',id:'file',tabindex:'-1',accept:'.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.odt,.odp,.ods,.rtf,.txt,.csv,.png,.jpg,.jpeg,.gif,.bmp,.webp,.tif,.tiff,application/pdf,image/*'});
+  const zone = h('label',{class:'drop',for:'file',tabindex:'0'},
+    icon('upload'), h('strong',{},'Drop files here to check them'), h('span',{class:'muted'},'PDF, Word, PowerPoint, Excel, photo or scan. Click to choose files (up to 25 MB each).'));
+  zone.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); input.click(); } });
+  ['dragenter','dragover'].forEach(ev => zone.addEventListener(ev, e => { e.preventDefault(); zone.classList.add('over'); }));
+  ['dragleave','drop'].forEach(ev => zone.addEventListener(ev, e => { e.preventDefault(); zone.classList.remove('over'); }));
+  zone.addEventListener('drop', e => handle([...e.dataTransfer.files]));
+  input.addEventListener('change', () => { handle([...input.files]); input.value = ''; });
+  let chain = Promise.resolve();
+  function handle(files){ files.forEach(f => { chain = chain.then(() => upload(f)); }); }
+  async function upload(file){
+    const row = h('div',{class:'up'}); tray.prepend(row);
+    const set = (cls, lead, title, sub, act) => { row.className = 'up ' + cls; row.replaceChildren(lead, h('div',{}, h('div',{class:'name'}, title), sub), act || h('span')); };
+    const fail = msg => set('error', stamp('failed'), file.name, h('div',{}, msg), h('button',{class:'btn small',onclick:()=>row.remove()},'Dismiss'));
+    if (file.size > MAX) return fail('This file is larger than 25 MB. Send a smaller copy.');
+    if (!file.size) return fail('This file is empty.');
+    set('busy', h('span',{class:'stamp'}, h('span',{class:'spin'})), file.name, h('div',{}, h('span',{class:'muted'},'Checking against the ledger…'), h('div',{class:'bar'}, h('i'))));
+    try {
+      const res = await api('/submitter/evidence',{method:'POST',body:{filename:file.name,content_b64:await fileToB64(file)}});
+      set('done '+res.verdict, stamp(res.verdict), file.name, h('div',{}, h('strong',{}, res.headline + '. '), res.explain),
+        h('div',{class:'act'}, h('button',{class:'btn small',onclick:()=>openEvidence(res)},'See details')));
+      onDone && onDone(res);
+    } catch(e){ if (e.message !== 'Session ended') fail(e.message); }
+  }
+  return { zone, input, tray };
+}
 
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-header">
-            <span class="card-title">🛡️ Post-Quantum Security Architecture</span>
-            <span class="status-badge status-verified">Verified Ready</span>
-          </div>
-          <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 1rem;">
-            TraceVault achieves offline, zero-trust document tracking through an unbreakable cryptographic chain:
-          </p>
-          <ul style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.7; padding-left: 1.25rem;">
-            <li><strong>Encrypted at Rest:</strong> Server vault stores documents under AES-256-GCM. Plaintext is never staged raw.</li>
-            <li><strong>Multi-Recipient Envelope:</strong> One AES payload with per-recipient <strong>ML-KEM-768</strong> post-quantum encapsulation.</li>
-            <li><strong>Recipient-Local Decryption:</strong> Keys never leave the client. Decryption occurs strictly inside recipient memory.</li>
-            <li><strong>Session Fingerprinting:</strong> DEC-time spread-spectrum watermark embedded with 64-bit session digest.</li>
-            <li><strong>ML-DSA-65 Signatures:</strong> Every recipient digitally signs a canonical event before document release.</li>
-            <li><strong>4-Node Quorum Ledger:</strong> Fail-closed release blocks document access unless ≥3 of 4 independent nodes attest.</li>
-          </ul>
-        </div>
+/* ---------- evidence detail ---------- */
+async function openEvidence(it){
+  const base = S.role === 'submitter' ? '/submitter/evidence/' : '/auditor/evidence/';
+  const id = encodeURIComponent(it.case_id);
+  const body = h('div',{}, h('p',{class:'muted'},'Loading…'));
+  const foot = h('div',{style:'display:contents'});
+  const dlg = modal('Evidence ' + it.case_id, body, foot);
+  try {
+    const d = await api(base + id);
+    const m = d.report.match, tech = S.tech && isStaff();
+    body.replaceChildren(
+      h('div',{class:'verdict '+d.verdict}, stamp(d.verdict), h('div',{}, h('h3',{},d.headline), h('p',{},d.explain))),
+      h('dl',{class:'facts'},
+        h('dt',{},'File'), h('dd',{},d.filename),
+        h('dt',{},'Submitted by'), h('dd',{},d.submitter),
+        h('dt',{},'Submitted on'), h('dd',{},fmtDate(d.date)),
+        m && h('dt',{},'Traced to'), m && h('dd',{}, (m.recipient || 'Unknown recipient') + ' — copy opened ' + fmtDate(m.decrypted_at)),
+        tech && h('dt',{},'File fingerprint'), tech && h('dd',{}, short(d.report.evidence_sha3_256, 40)),
+        tech && m && h('dt',{},'Ledger block'), tech && m && h('dd',{}, '#' + m.record_index + ' · ', short(m.record_hash, 24)),
+        tech && m && h('dt',{},'Session'), tech && m && h('dd',{}, short(m.session_id, 24)),
+        tech && m && h('dt',{},'Recipient key'), tech && m && h('dd',{}, short(m.recipient_key_id, 24))),
+      h('h3',{style:'margin-bottom:.6rem'},'What was checked'),
+      h('ul',{class:'checks'}, d.report.checks.map(c => h('li',{}, icon(c.passed?'check':'x', c.passed?'ok':'no'),
+        h('span',{}, (CHECK_TEXT[c.name] || c.name) + (c.passed ? '' : ' — not confirmed') + (tech && c.detail ? ' (' + c.detail + ')' : ''))))),
+      h('p',{class:'hint',style:'margin-top:1rem'}, d.report.disclaimer)
+    );
+    foot.append(h('button',{class:'btn',onclick:()=>dlg.close()},'Close'));
+    if (isStaff()){
+      const re = h('button',{class:'btn'},'Re-check authenticity');
+      re.onclick = async () => {
+        re.disabled = true; re.textContent = 'Checking…';
+        try {
+          const a = await api(base + id + '/authenticity');
+          body.prepend(h('div',{class:'verdict '+a.verdict, role:'status'}, stamp(a.verdict), h('div',{},
+            h('h3',{}, 'Re-check: ' + a.headline),
+            h('p',{}, a.file_intact ? (a.unchanged_since_submission ? 'The stored file is unchanged and the result matches the original check.' : 'The stored file is unchanged, but the result differs from the original check.') : 'The stored file no longer matches what was submitted. ' + (a.reason || '')))));
+        } catch(e){ toast(e.message, true); }
+        re.disabled = false; re.textContent = 'Re-check authenticity';
+      };
+      foot.prepend(re);
+    }
+    const jb = h('button',{class:'btn'},'Download JSON');
+    jb.onclick = () => download(base + id + '/json', `TraceVault_Report_${d.case_id}.json`, jb);
+    const pb = h('button',{class:'btn primary'},'Download PDF report');
+    pb.onclick = () => download(base + id + '/pdf', `TraceVault_Report_${d.case_id}.pdf`, pb);
+    foot.append(jb, pb);
+  } catch(e){ body.replaceChildren(h('p',{class:'err'}, e.message)); }
+}
 
-        <div class="card">
-          <div class="card-header">
-            <span class="card-title">⚡ Quick Workflow Execution</span>
-          </div>
-          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">
-            Jump straight into any role workflow or run the automated end-to-end golden path demonstration:
-          </p>
-          <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-            <button class="btn" onclick="showScreen('screen-recipient-portal')">
-              🔓 Open Recipient Decryption Portal (Bob)
-            </button>
-            <button class="btn btn-secondary" onclick="showScreen('screen-investigator')">
-              🔍 Open Forensic Evidence Verification Lab
-            </button>
-            <button class="btn btn-emerald" onclick="showScreen('screen-demo')">
-              🧪 Run Automated Golden Path & Attack Simulator
-            </button>
-          </div>
-        </div>
-      </div>
-    </section>
+/* ---------- shell ---------- */
+function shell(tabs, renderers){
+  const app = document.getElementById('app'); app.replaceChildren();
+  if (!S.tab || !tabs.some(t => t[0] === S.tab)) S.tab = tabs[0][0];
+  const main = h('main',{id:'main'});
+  const go = id => { S.tab = id; shell(tabs, renderers); };
+  S.go = go;
+  const nav = h('nav',{class:'tabs','aria-label':'Sections'}, tabs.map(([id,label]) =>
+    h('button',{'aria-current': id===S.tab?'page':null, onclick:()=>go(id)}, label)));
+  const tech = isStaff() && h('label',{class:'techswitch'}, h('input',{type:'checkbox',checked:S.tech?true:null,onchange:e=>{S.tech=e.target.checked; store.set('tvtech',S.tech?'1':'0'); shell(tabs, renderers);}}), 'Technical details');
+  app.append(
+    h('header',{class:'top'}, h('div',{class:'brand'}, logo(), 'TraceVault'), h('span',{class:'rolebadge'}, ROLE_TEXT[S.role]),
+      h('div',{class:'who'}, tech, h('span',{}, S.user),
+        h('button',{class:'btn small',onclick:changePassword},'Change password'),
+        h('button',{class:'btn small',onclick:()=>logout()},'Sign out'))),
+    nav, main);
+  main.replaceChildren(h('p',{class:'muted'},'Loading…'));
+  renderers[S.tab](main).catch(e => { if (e.message !== 'Session ended') main.replaceChildren(h('p',{class:'err',role:'alert'}, e.message)); });
+}
+function logo(){ const s = document.createElementNS(SVGNS,'svg'); s.setAttribute('viewBox','0 0 32 32'); s.setAttribute('aria-hidden','true'); s.innerHTML = '<path d="M16 3l11 4v8c0 7-5 12-11 14C10 27 5 22 5 15V7z" fill="#6FA3D8"/><path d="M11 16l4 4 7-8" fill="none" stroke="#16212F" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>'; return s; }
+function changePassword(){
+  formDialog('Change password', [
+    {name:'current_password',label:'Current password',type:'password',auto:'current-password'},
+    {name:'new_password',label:'New password (at least 8 characters)',type:'password',auto:'new-password',min:8}], 'Save password',
+    async v => { await api('/auth/password',{method:'POST',body:v}); toast('Password changed'); });
+}
 
-    <!-- SCREEN 2: Admin & Document Intake -->
-    <section id="screen-admin" class="view-screen">
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-header">
-            <span class="card-title">📥 Document Intake (Encrypted at Rest)</span>
-            <span class="hash-badge">AES-256-GCM</span>
-          </div>
-          <form id="doc-upload-form" onsubmit="handleDocUpload(event)">
-            <div class="form-group">
-              <label class="form-label">Document Classification Title</label>
-              <input type="text" id="doc-title" class="form-input" placeholder="e.g. DEFENSE-OP-PLAN-CYPHER" required>
-            </div>
-            
-            <div class="form-group">
-              <label class="form-label">Upload PDF Document</label>
-              <div class="dropzone" id="pdf-dropzone" onclick="document.getElementById('pdf-file-input').click()">
-                <div style="font-size: 2rem; margin-bottom: 0.5rem;">📄</div>
-                <strong>Click or Drag & Drop Classified PDF</strong>
-                <p style="font-size: 0.75rem; color: var(--text-dim); margin-top: 0.3rem;">Files are immediately encrypted at rest upon intake</p>
-                <div id="pdf-filename" style="margin-top: 0.5rem; color: var(--cyan); font-weight: 600;"></div>
-              </div>
-              <input type="file" id="pdf-file-input" accept="application/pdf" style="display: none;" onchange="handleFileSelect(this)">
-            </div>
+/* ---------- login ---------- */
+function renderLogin(msg){
+  S.token = S.user = S.role = null; S.tab = null;
+  const err = h('p',{class:'err',role:'alert'}, msg || '');
+  const user = h('input',{id:'u',autocomplete:'username',required:true,autocapitalize:'none',spellcheck:'false'});
+  const pass = h('input',{id:'p',type:'password',autocomplete:'current-password',required:true});
+  const eye = h('button',{type:'button','aria-label':'Show password',onclick:()=>{ const show = pass.type === 'password'; pass.type = show ? 'text' : 'password'; eye.textContent = show ? 'Hide' : 'Show'; eye.setAttribute('aria-label', show ? 'Hide password' : 'Show password'); }},'Show');
+  const go = h('button',{class:'btn primary',type:'submit',style:'width:100%;justify-content:center;min-height:46px'},'Sign in');
+  const form = h('form',{},
+    h('h2',{},'Welcome back'), h('p',{class:'lead'},'Sign in with the account your administrator gave you.'),
+    h('div',{class:'field'}, h('label',{for:'u'},'Username'), user),
+    h('div',{class:'field'}, h('label',{for:'p'},'Password'), h('div',{class:'pw'}, pass, eye)), err, go,
+    h('p',{class:'foot'}, icon('verified'), 'Post-quantum encrypted. Every sign-in is logged.'));
+  form.addEventListener('submit', async e => {
+    e.preventDefault(); err.textContent = ''; go.disabled = true; go.replaceChildren(h('span',{class:'spin'}), ' Signing in…');
+    try {
+      const r = await api('/auth/login',{method:'POST',body:{username:user.value.trim(),password:pass.value}, noLogout:true});
+      S.token = r.token; S.user = r.username; S.role = r.role; store.set('tv', JSON.stringify({t:r.token,u:r.username,r:r.role}));
+      route();
+    } catch(ex){ err.textContent = ex.message; go.disabled = false; go.textContent = 'Sign in'; pass.value = ''; pass.focus(); }
+  });
+  const point = (ic, text) => h('li',{}, h('span',{class:'pi'}, icon(ic)), h('span',{}, text));
+  const art = h('section',{class:'login-art'},
+    h('div',{class:'brand'}, logo(), 'TraceVault'),
+    h('div',{class:'pitch'}, h('h1',{},'Know where every copy came from.'),
+      h('ul',{class:'points'},
+        point('doc','Share sensitive files with named people only.'),
+        point('eye','Every opened copy carries an invisible mark unique to the person who opened it.'),
+        point('link','If a copy leaks, upload it and see exactly who it was issued to.'))));
+  const seal = document.createElementNS(SVGNS,'svg'); seal.setAttribute('class','seal'); seal.setAttribute('viewBox','0 0 200 200'); seal.setAttribute('aria-hidden','true');
+  seal.innerHTML = '<g fill="none" stroke="#fff" stroke-width="2"><circle cx="100" cy="100" r="96"/><circle cx="100" cy="100" r="82" stroke-dasharray="2 6"/><circle cx="100" cy="100" r="64"/><path d="M100 54l36 13v28c0 24-16 40-36 47-20-7-36-23-36-47V67z" stroke-width="4"/><path d="M82 100l13 13 24-27" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></g>';
+  art.append(seal);
+  document.getElementById('app').replaceChildren(h('div',{class:'login'}, art, h('section',{class:'login-form'}, h('div',{class:'login-card'}, form))));
+  user.focus();
+}
+function logout(msg){ store.del('tv'); renderLogin(msg); }
 
-            <button type="submit" class="btn" style="width: 100%;">
-              🔒 Ingest & Encrypt Document in Vault
-            </button>
-          </form>
-        </div>
+/* ================================================================== SHARED SCREENS */
 
-        <div class="card">
-          <div class="card-header">
-            <span class="card-title">📚 Registered Classified Documents</span>
-            <button class="btn btn-secondary" style="padding: 0.3rem 0.7rem; font-size: 0.75rem;" onclick="loadDocuments()">Refresh</button>
-          </div>
-          <div style="overflow-x: auto;">
-            <table class="data-table" id="docs-table">
-              <thead>
-                <tr>
-                  <th>Title</th>
-                  <th>Document ID</th>
-                  <th>Original SHA3-256</th>
-                  <th>Status</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody id="docs-list">
-                <tr><td colspan="5" style="text-align: center; color: var(--text-dim);">No documents registered yet. Click "Seed Demo Data".</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </section>
+/* Evidence: drop zone + history */
+async function evidenceScreen(main, { all }){
+  let items = (await api(all ? '/auditor/evidence' : '/submitter/evidence')).items;
+  const host = h('div',{});
+  const q = h('input',{type:'search','aria-label':'Search submissions',placeholder:'Search by ID, file or submitter'});
+  const st = h('select',{'aria-label':'Filter by status'}, h('option',{value:''},'All statuses'), h('option',{value:'verified'},'Verified'), h('option',{value:'inconclusive'},'Needs review'), h('option',{value:'failed'},'Failed'));
+  const draw = () => {
+    const t = q.value.trim().toLowerCase();
+    const shown = items.filter(i => (!st.value || i.verdict === st.value) && (!t || (i.case_id+' '+i.filename+' '+i.submitter).toLowerCase().includes(t)));
+    host.replaceChildren(evidenceTable(shown,{onOpen:openEvidence, empty: items.length ? 'No submissions match your filters.' : 'Nothing has been submitted yet. Drop a file above to check it.'}));
+  };
+  const refresh = async () => { items = (await api(all ? '/auditor/evidence' : '/submitter/evidence')).items; draw(); };
+  q.addEventListener('input', draw); st.addEventListener('change', draw); draw();
+  const up = evidenceUploader(refresh);
+  main.replaceChildren(
+    h('div',{}, sectionHead('Check a file'), up.zone, up.input, up.tray),
+    h('div',{}, subHead(all ? 'All submissions' : 'Your submissions'), h('div',{class:'toolbar'}, q, st), host));
+}
 
-    <!-- SCREEN 3: Recipient Registry -->
-    <section id="screen-recipients" class="view-screen">
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-header">
-            <span class="card-title">👤 Register New Post-Quantum Recipient</span>
-            <span class="hash-badge">ML-KEM + ML-DSA</span>
-          </div>
-          <form id="recip-form" onsubmit="handleRecipRegister(event)">
-            <div class="form-group">
-              <label class="form-label">Username / User ID</label>
-              <input type="text" id="recip-uid" class="form-input" placeholder="e.g. david" required>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Display Name</label>
-              <input type="text" id="recip-name" class="form-input" placeholder="e.g. Col. David Vance" required>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Keystore Passphrase</label>
-              <input type="password" id="recip-passphrase" class="form-input" placeholder="Passphrase for local encrypted keystore" required>
-            </div>
-            <button type="button" class="btn btn-secondary" onclick="generateClientKeystore()" style="margin-bottom: 1rem; width: 100%;">
-              🔑 Generate ML-KEM-768 & ML-DSA-65 Keypair
-            </button>
-            <div id="gen-key-status" style="font-size: 0.8rem; margin-bottom: 1rem; color: var(--cyan); display: none;"></div>
-            <button type="submit" class="btn" style="width: 100%;">
-              Register Recipient Public Keys
-            </button>
-          </form>
-        </div>
+/* Ledger: health, nodes, blocks, verifier files */
+async function ledgerScreen(main){
+  const canToggle = S.role === 'admin';
+  const [l, bl] = await Promise.all([api('/auditor/ledger'), api('/auditor/ledger/blocks')]);
+  const v = l.verified ? 'verified' : 'failed';
+  const redraw = () => ledgerScreen(main).catch(e => toast(e.message, true));
+  const again = h('button',{class:'btn',style:'margin-left:auto'},'Check again');
+  again.onclick = async () => { again.disabled = true; again.textContent = 'Checking…'; await redraw(); toast('Ledger checked'); };
+  const health = h('div',{class:'panel',style:'overflow:hidden'},
+    h('div',{class:'health '+v}, stamp(v), h('div',{}, h('h2',{}, l.verified ? 'The ledger is intact' : 'The ledger has a problem'),
+      h('p',{}, l.verified ? `${l.nodes_valid} of ${l.nodes_total} nodes agree on all ${l.blocks} record${l.blocks===1?'':'s'}. New events need at least 3 nodes online.` : `Only ${l.nodes_valid} of ${l.nodes_total} nodes hold a valid copy. Contact your administrator.`)), again),
+    h('div',{class:'nodes'}, Object.entries(l.nodes).map(([id,n]) => {
+      const b = canToggle && h('button',{class:'btn small'}, n.online ? 'Take offline' : 'Bring online');
+      if (b) b.onclick = async () => { b.disabled = true; try { const r = await api(`/admin/nodes/${encodeURIComponent(id)}/toggle`,{method:'POST'}); toast(`Node ${id.replace('node-','')} is ${r.online?'online':'offline'}`); } catch(e){ toast(e.message,true); } redraw(); };
+      return h('div',{class:'node'},
+        h('strong',{}, h('span',{class:'dot'+(n.online?'':' off')}), 'Node ' + id.replace('node-','')),
+        h('span',{class:'muted'}, (n.online ? 'Online' : 'Offline') + ' · ' + (n.valid ? 'copy is valid' : 'copy has errors')),
+        h('span',{class:'muted'}, `${n.records} record${n.records===1?'':'s'}`), b);
+    })));
 
-        <div class="card">
-          <div class="card-header">
-            <span class="card-title">👥 Active Recipient Public Key Registry</span>
-            <button class="btn btn-secondary" style="padding: 0.3rem 0.7rem; font-size: 0.75rem;" onclick="loadRecipients()">Refresh</button>
-          </div>
-          <div style="overflow-x: auto;">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Display Name</th>
-                  <th>Key ID (K-...)</th>
-                  <th>Algorithms</th>
-                  <th>Status</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody id="recip-list">
-                <tr><td colspan="5" style="text-align: center; color: var(--text-dim);">Loading recipients...</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </section>
+  const t = S.tech;
+  const blocks = bl.blocks.length ? h('div',{class:'tablewrap'}, h('table',{},
+    h('thead',{}, h('tr',{}, h('th',{},'Block'), h('th',{},'Recorded'), h('th',{},'Document opened by'), h('th',{},'Node approvals'),
+      t && h('th',{},'Block hash'), t && h('th',{},'Previous block'), t && h('th',{},'Session'), t && h('th',{},'Recipient key'))),
+    h('tbody',{}, bl.blocks.map(b => h('tr',{}, h('td',{class:'id'}, '#' + b.index), h('td',{}, fmtDate(b.timestamp)), h('td',{}, b.recipient),
+      h('td',{}, h('span',{class:'chip '+(b.attestations>=3?'verified':'failed')}, icon(b.attestations>=3?'verified':'failed'), `${b.attestations} of 4`)),
+      t && h('td',{}, short(b.record_hash)), t && h('td',{}, short(b.prev_hash)), t && h('td',{}, short(b.session_id)), t && h('td',{}, short(b.recipient_key_id))))))
+  ) : h('div',{class:'tablewrap'}, h('div',{class:'empty'},'No documents have been opened yet, so the ledger has no blocks.'));
 
-    <!-- SCREEN 4: Distribution Wizard -->
-    <section id="screen-distribution" class="view-screen">
-      <div class="card" style="max-width: 800px; margin: 0 auto;">
-        <div class="card-header">
-          <span class="card-title">📦 Create Multi-Recipient Encrypted Distribution</span>
-          <span class="hash-badge">PRD §9 Multi-KEM Envelope</span>
-        </div>
-        <form id="dist-form" onsubmit="handleCreateDistribution(event)">
-          <div class="form-group">
-            <label class="form-label">Select Document to Distribute</label>
-            <select id="dist-doc-select" class="form-select" required>
-              <option value="">-- Choose Classified Document --</option>
-            </select>
-          </div>
+  const exp = async (btn, which) => {
+    btn.disabled = true;
+    try { const j = await api('/auditor/ledger/export'); saveBlob(new Blob([JSON.stringify(which === 'l' ? j.ledger : j.registry, null, 1)],{type:'application/json'}), which === 'l' ? 'ledger_export.json' : 'registry.json'); }
+    catch(e){ toast(e.message, true); }
+    btn.disabled = false;
+  };
+  const b1 = h('button',{class:'btn'},'Download ledger export'), b2 = h('button',{class:'btn'},'Download registry');
+  b1.onclick = () => exp(b1,'l'); b2.onclick = () => exp(b2,'r');
 
-          <div class="form-group">
-            <label class="form-label">Select Authorized Recipients (Multi-KEM Wrap)</label>
-            <div id="dist-recip-checkboxes" style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px; max-height: 200px; overflow-y: auto;">
-              <!-- checkboxes populated dynamically -->
-            </div>
-          </div>
+  main.replaceChildren(
+    sectionHead('Ledger'), health,
+    h('div',{}, subHead('Recorded events'), blocks),
+    h('div',{class:'panel cardrow'}, h('h3',{},'Check it independently'),
+      h('p',{class:'muted'},'Download the ledger and registry, then verify them on any computer without trusting this server.'),
+      h('div',{class:'row'}, b1, b2),
+      h('p',{class:'hint'}, h('code',{class:'h'},'python -m tracevault.verify_ledger ledger_export.json registry.json'))));
+}
 
-          <div class="card" style="background: rgba(0, 240, 255, 0.03); border: 1px dashed rgba(0, 240, 255, 0.3); margin-bottom: 1.5rem;">
-            <strong style="color: var(--cyan); font-size: 0.88rem;">Multi-Recipient Envelope Encryption Scheme:</strong>
-            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.3rem;">
-              The document is encrypted ONCE under an ephemeral Content Encryption Key (CEK: AES-256-GCM).
-              The CEK is then wrapped independently for each chosen recipient using a Key Encapsulation Mechanism (ML-KEM-768).
-              Recipients only receive their respective encapsulation.
-            </p>
-          </div>
+/* Security tests (+ golden path for admins) */
+async function testsScreen(main){
+  const out = h('div',{'aria-live':'polite'}, h('p',{class:'muted'},'Choose a test to run. Results appear here.'));
+  const render = (title, steps, banner) => out.replaceChildren(
+    h('h3',{style:'margin-bottom:.6rem'}, title),
+    h('ul',{class:'steps'}, steps.map(s => h('li',{}, icon(s.ok?'check':'x', s.ok?'ok':'no'), h('span',{}, s.text)))),
+    banner);
+  const busy = (btn, label, p) => { const old = btn.textContent; btn.disabled = true; btn.replaceChildren(h('span',{class:'spin'}), ' ' + label);
+    out.replaceChildren(h('p',{class:'muted'}, h('span',{class:'spin'}), ' Running… this can take a few seconds.'));
+    return p.finally(() => { btn.disabled = false; btn.textContent = old; }); };
 
-          <button type="submit" class="btn" style="width: 100%;">
-            🔒 Encapsulate & Create Distribution Package
-          </button>
-        </form>
-        <div id="dist-result" style="margin-top: 1.5rem; display: none;"></div>
-      </div>
-    </section>
+  const tests = [
+    ['tamper_ledger','Rewrite history','Three nodes secretly change a past record. Will the change be caught?'],
+    ['key_substitution','Swap a key','An attacker replaces someone\'s registered key. Will signatures still be trusted?'],
+    ['quorum_loss','Take nodes offline','Two of four nodes go down. Will documents still be released?']];
+  const testCards = tests.map(([k,t,d]) => {
+    const b = h('button',{class:'btn'},'Run test');
+    b.onclick = () => busy(b,'Running', api('/simulate/'+k,{method:'POST'}).then(r => render(r.title, r.steps,
+      h('div',{class:'banner '+(r.defended?'verified':'failed'),style:'margin-top:1rem'}, stamp(r.defended?'verified':'failed'), h('div',{}, h('h3',{}, r.defended ? 'Defended' : 'Not defended'), h('p',{}, r.result)))))
+      .catch(e => out.replaceChildren(h('p',{class:'err',role:'alert'}, e.message))));
+    return h('div',{class:'panel cardrow'}, h('h3',{},t), h('p',{class:'muted'},d), h('div',{}, b));
+  });
 
-    <!-- SCREEN 5: Recipient Portal & Decryption Timeline -->
-    <section id="screen-recipient-portal" class="view-screen">
-      <div class="grid-2">
-        <div>
-          <div class="card" style="margin-bottom: 1.5rem;">
-            <div class="card-header">
-              <span class="card-title">📬 Recipient Secure Inbox (<span id="recip-inbox-user">Bob</span>)</span>
-              <button class="btn btn-secondary" style="padding: 0.3rem 0.7rem; font-size: 0.75rem;" onclick="loadRecipientInbox()">Refresh</button>
-            </div>
-            <div id="recip-inbox-list">
-              <p style="color: var(--text-dim); font-size: 0.85rem;">Loading authorized packages...</p>
-            </div>
-          </div>
+  let golden = null;
+  if (S.role === 'admin'){
+    const gb = h('button',{class:'btn primary'},'Run the demo');
+    gb.onclick = () => busy(gb,'Running', api('/admin/demo/golden-path',{method:'POST'}).then(r => render('Demo: from sharing to catching a leak', r.steps,
+      h('div',{class:'banner '+r.case.verdict,style:'margin-top:1rem'}, stamp(r.case.verdict), h('div',{}, h('h3',{}, r.case.headline + (r.traced_to ? ' — traced to ' + r.traced_to : '')), h('p',{}, r.case.explain)),
+        h('span',{class:'spacer'}), h('button',{class:'btn small',onclick:()=>openEvidence(r.case)},'See the report')))).catch(e => out.replaceChildren(h('p',{class:'err',role:'alert'}, e.message))));
+    golden = h('div',{class:'panel cardrow'}, h('h3',{},'Demo: the whole story'),
+      h('p',{class:'muted'},'Registers a sample document, shares it with three people, lets one open it, simulates a leak and traces it back to them. It uses throw-away demo recipients and creates a real, viewable case.'), h('div',{}, gb));
+  }
+  main.replaceChildren(sectionHead(S.role === 'admin' ? 'Tests and demo' : 'Security tests'),
+    h('p',{class:'muted'},'Tests run on temporary copies, so your real ledger and registry are never changed.'),
+    golden, h('div',{class:'grid2'}, testCards), h('div',{class:'panel pad'}, out));
+}
 
-          <div class="card">
-            <div class="card-header">
-              <span class="card-title">🔑 Local KeyStore Unlock</span>
-              <span class="hash-badge">Client-Side Only</span>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Keystore Passphrase</label>
-              <input type="password" id="recip-decrypt-pass" class="form-input" value="bob123">
-              <span style="font-size: 0.72rem; color: var(--text-dim);">Keys never leave local memory. Server never sees plaintext.</span>
-            </div>
-            <button id="btn-trigger-decrypt" class="btn btn-emerald" style="width: 100%;" onclick="executeRecipientRelease()">
-              🔓 Decrypt, Fingerprint & Release Document
-            </button>
-          </div>
-        </div>
+/* Activity */
+async function activityScreen(main){
+  const a = await api(S.role === 'admin' ? '/admin/audit' : '/auditor/audit-log');
+  const t = S.tech;
+  main.replaceChildren(sectionHead('Activity', h('span',{class:'chip '+(a.verified?'verified':'failed')}, icon(a.verified?'verified':'failed'), a.verified ? 'Activity log is intact' : 'Activity log has been altered')),
+    h('div',{class:'tablewrap'}, a.entries.length ? h('table',{}, h('thead',{}, h('tr',{}, h('th',{},'When'), h('th',{},'Who'), h('th',{},'What'), t && h('th',{},'Details'), t && h('th',{},'Entry hash'))),
+      h('tbody',{}, a.entries.map(e => h('tr',{}, h('td',{}, fmtEpoch(e.timestamp)), h('td',{}, e.actor), h('td',{}, ACTION_TEXT[e.action] || e.action),
+        t && h('td',{}, h('code',{class:'h'}, JSON.stringify(e.details))), t && h('td',{}, short(e.entry_hash)))))) : h('div',{class:'empty'},'No activity yet.')));
+}
 
-        <div>
-          <!-- Decryption Timeline -->
-          <div class="card">
-            <div class="card-header">
-              <span class="card-title">⏱️ Decryption Timeline & Fail-Closed Gate</span>
-              <span id="timeline-status" class="status-badge status-warning">Awaiting Release</span>
-            </div>
+/* ================================================================== SUBMITTER */
+function submitterView(){
+  shell([['check','Check a file'],['docs','My documents']], {
+    check: m => evidenceScreen(m, { all: false }),
+    docs: documentsScreen
+  });
+}
 
-            <div class="timeline-container">
-              <div class="timeline-steps">
-                <div class="timeline-step" id="t-step-decrypt">
-                  <div class="step-circle">1</div>
-                  <span class="step-label">Decrypt</span>
-                </div>
-                <div class="timeline-step" id="t-step-fingerprint">
-                  <div class="step-circle">2</div>
-                  <span class="step-label">Fingerprint</span>
-                </div>
-                <div class="timeline-step" id="t-step-sign">
-                  <div class="step-circle">3</div>
-                  <span class="step-label">Sign Event</span>
-                </div>
-                <div class="timeline-step" id="t-step-ledger">
-                  <div class="step-circle">4</div>
-                  <span class="step-label">4-Node Quorum</span>
-                </div>
-                <div class="timeline-step" id="t-step-release">
-                  <div class="step-circle">5</div>
-                  <span class="step-label">Release</span>
-                </div>
-              </div>
-            </div>
-
-            <div id="timeline-log" style="background: rgba(0,0,0,0.5); border-radius: 8px; padding: 1rem; font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted); min-height: 120px; max-height: 180px; overflow-y: auto;">
-              [system] Ready. Select a package and click 'Decrypt, Fingerprint & Release'.
-            </div>
-
-            <!-- In-App Viewer -->
-            <div id="viewer-container" style="margin-top: 1.5rem; display: none;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-                <span style="font-weight: 600; font-size: 0.85rem; color: var(--emerald);">📄 Released Fingerprinted PDF Viewer</span>
-                <span id="wm-digest-tag" class="hash-badge"></span>
-              </div>
-              <div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem;">
-                <button id="btn-download-pdf" class="btn" style="font-size: 0.75rem; padding: 0.35rem 0.75rem;">📥 Download Protected PDF</button>
-                <button id="btn-open-pdf" class="btn btn-secondary" style="font-size: 0.75rem; padding: 0.35rem 0.75rem;">↗️ Open PDF in New Tab</button>
-              </div>
-              <div id="pdf-pages-view" style="background: #0f172a; border-radius: 8px; padding: 1rem; border: 1px solid var(--border-subtle); max-height: 550px; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem; align-items: center;">
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- SCREEN 6: Investigator Lab -->
-    <section id="screen-investigator" class="view-screen">
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-header">
-            <span class="card-title">🔍 Forensic Evidence Intake</span>
-            <span class="hash-badge">PRD §11 Pipeline</span>
-          </div>
-          <form id="leak-form" onsubmit="handleEvidenceAnalysis(event)">
-            <div class="form-group">
-              <label class="form-label">Upload Leaked Evidence (PDF or Photograph/Scan)</label>
-              <div class="dropzone" id="leak-dropzone" onclick="document.getElementById('leak-file-input').click()">
-                <div style="font-size: 2rem; margin-bottom: 0.5rem;">🚨</div>
-                <strong>Upload Leaked PDF or Photograph (.jpg, .png)</strong>
-                <p style="font-size: 0.75rem; color: var(--text-dim); margin-top: 0.3rem;">Handles resaved PDFs, JPEG compression, and rotated photo captures</p>
-                <div id="leak-filename" style="margin-top: 0.5rem; color: var(--amber); font-weight: 600;"></div>
-              </div>
-              <input type="file" id="leak-file-input" style="display: none;" onchange="handleLeakSelect(this)">
-            </div>
-
-            <div style="display: flex; gap: 0.75rem;">
-              <button type="submit" class="btn" style="flex: 1;">
-                🔬 Run Cryptographic Provenance Analysis
-              </button>
-              <button type="button" class="btn btn-secondary" onclick="useSampleLeak()">
-                Load Sample Leaked Artifact
-              </button>
-            </div>
-          </form>
-        </div>
-
-        <div class="card">
-          <div class="card-header">
-            <span class="card-title">📋 Provenance Forensic Report</span>
-            <div id="report-export-buttons" style="display: none; gap: 0.5rem;">
-              <button class="btn btn-secondary" style="font-size: 0.75rem; padding: 0.3rem 0.6rem;" onclick="exportCasePDF()">
-                📄 PDF Report
-              </button>
-              <button class="btn btn-secondary" style="font-size: 0.75rem; padding: 0.3rem 0.6rem;" onclick="exportCaseJSON()">
-                💾 JSON
-              </button>
-            </div>
-          </div>
-
-          <div id="investigator-results" style="min-height: 250px;">
-            <p style="color: var(--text-dim); font-size: 0.85rem; text-align: center; margin-top: 4rem;">
-              Upload evidence or click 'Load Sample Leaked Artifact' to run verification.
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- SCREEN 7: 4-Node Quorum Ledger -->
-    <section id="screen-ledger" class="view-screen">
-      <div class="card-header" style="margin-bottom: 1.5rem;">
-        <div>
-          <h2 style="font-size: 1.3rem;">⛓️ 4-Node Permissioned Provenance Ledger</h2>
-          <p style="font-size: 0.8rem; color: var(--text-muted);">Independent hash chains, ML-DSA-65 attestations, and 3-of-4 Byzantine fault-tolerant quorum.</p>
-        </div>
-        <div style="display: flex; gap: 0.5rem;">
-          <button class="btn btn-secondary" onclick="loadLedgerStatus()">Refresh Nodes</button>
-          <button class="btn btn-secondary" onclick="exportLedgerJSON()">Export Chain for Verifier</button>
-        </div>
-      </div>
-
-      <div class="grid-4" id="ledger-nodes-grid" style="margin-bottom: 2rem;">
-        <!-- Populated dynamically -->
-      </div>
-
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">📜 Verified Quorum Blocks</span>
-        </div>
-        <div style="overflow-x: auto;">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Index</th>
-                <th>Block Hash</th>
-                <th>Session ID</th>
-                <th>Recipient Key ID</th>
-                <th>Prev Hash</th>
-                <th>Attestations</th>
-              </tr>
-            </thead>
-            <tbody id="ledger-blocks-list">
-              <tr><td colspan="6" style="text-align: center; color: var(--text-dim);">Loading ledger records...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <!-- SCREEN 8: Attack & Demo Simulator -->
-    <section id="screen-demo" class="view-screen">
-      <div class="card-header" style="margin-bottom: 1.5rem;">
-        <div>
-          <h2 style="font-size: 1.3rem;">🧪 Interactive Attack & Fail-Closed Simulator</h2>
-          <p style="font-size: 0.8rem; color: var(--text-muted);">Prove system robustness against tamper attacks, quorum failures, and unauthorized decryptions.</p>
-        </div>
-      </div>
-
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-header">
-            <span class="card-title">🌟 Golden Path: End-to-End Execution</span>
-          </div>
-          <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 1.25rem;">
-            Executes the complete production workflow: Admin ingests classified PDF -> Registers 3 recipients -> Wraps multi-recipient package -> Recipient 2 decrypts locally -> Simulates leak -> Investigator attributes leak.
-          </p>
-          <button class="btn btn-emerald" style="width: 100%;" onclick="runGoldenDemo()">
-            ▶️ Run Full Golden Path Demonstration
-          </button>
-        </div>
-
-        <div class="card">
-          <div class="card-header">
-            <span class="card-title">🛡️ Negative Path Tamper Attacks</span>
-          </div>
-          <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-            <button class="btn btn-danger" onclick="runAttack('tamper_ledger')">
-              ⚠️ Attack 1: Colluding Ledger Nodes Rewrite History
-            </button>
-            <button class="btn btn-danger" onclick="runAttack('key_sub')">
-              ⚠️ Attack 2: Signer Key Substitution in Registry
-            </button>
-            <button class="btn btn-danger" onclick="runAttack('quorum_loss')">
-              ⚠️ Attack 3: Offline Node Quorum Loss (Fail-Closed)
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div class="card" style="margin-top: 1.5rem;">
-        <div class="card-header">
-          <span class="card-title">📟 Execution Console & Audit Trace</span>
-        </div>
-        <div id="demo-console" style="background: rgba(0,0,0,0.6); padding: 1.25rem; border-radius: 8px; font-family: var(--font-mono); font-size: 0.8rem; color: #A7F3D0; min-height: 200px; max-height: 350px; overflow-y: auto; white-space: pre-wrap;">
-Ready for simulation. Select a test above to view live cryptographic defense traces.
-        </div>
-      </div>
-    </section>
-
-    <!-- SCREEN 9: Audit Log -->
-    <section id="screen-audit" class="view-screen">
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">📜 Tamper-Evident Hash-Chained Audit Trail</span>
-          <span id="audit-integrity-badge" class="status-badge status-verified">Chain Valid</span>
-        </div>
-        <div style="overflow-x: auto;">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Timestamp</th>
-                <th>Actor</th>
-                <th>Action</th>
-                <th>Details</th>
-                <th>Entry Hash (SHA3-256)</th>
-              </tr>
-            </thead>
-            <tbody id="audit-list">
-              <tr><td colspan="5" style="text-align: center; color: var(--text-dim);">Loading audit trail...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-  </main>
-
-  <script>
-    // Global Application State
-    let currentUser = "bob";
-    let currentRole = "recipient";
-    let token = "";
-    let currentCaseId = "";
-    let uploadedPdfB64 = "";
-    let uploadedLeakB64 = "";
-    let clientKeystoreCache = null;
-
-    // Initialize
-    window.addEventListener("DOMContentLoaded", async () => {
-      await autoLogin(currentUser, `${currentUser}123`);
-      await loadDashboardStats();
+async function documentsScreen(main){
+  const inbox = await api('/recipient/packages');
+  const opened = h('div',{});
+  if (!inbox.enrolled){
+    const err = h('p',{class:'err',role:'alert'});
+    const name = h('input',{id:'en',required:true,minlength:2,autocomplete:'name'});
+    const p1 = h('input',{id:'ep1',type:'password',required:true,minlength:8,autocomplete:'new-password'});
+    const p2 = h('input',{id:'ep2',type:'password',required:true,minlength:8,autocomplete:'new-password'});
+    const go = h('button',{class:'btn primary',type:'submit'},'Create my key');
+    const form = h('form',{style:'max-width:420px'},
+      h('div',{class:'field'}, h('label',{for:'en'},'Your name as recipients see it'), name),
+      h('div',{class:'field'}, h('label',{for:'ep1'},'Key passphrase (at least 8 characters)'), p1, h('span',{class:'hint'},'You will type this each time you open a document. It is never stored, and it cannot be recovered if you forget it.')),
+      h('div',{class:'field'}, h('label',{for:'ep2'},'Repeat the passphrase'), p2), err, go);
+    form.addEventListener('submit', async e => {
+      e.preventDefault(); err.textContent = '';
+      if (p1.value !== p2.value) { err.textContent = 'The passphrases do not match.'; return; }
+      go.disabled = true;
+      try { await api('/recipient/enroll',{method:'POST',body:{display_name:name.value.trim(),passphrase:p1.value}}); toast('Your key is ready'); documentsScreen(main); }
+      catch(ex){ err.textContent = ex.message; go.disabled = false; }
     });
+    main.replaceChildren(sectionHead('My documents'), h('div',{class:'panel pad'}, h('h2',{style:'margin-bottom:.4rem'},'Set up your secure key'),
+      h('p',{class:'muted',style:'margin-bottom:1rem'},'Documents shared with you are locked to a personal key. Create yours once, then ask an administrator to share a document with you.'), form));
+    return;
+  }
+  const rows = inbox.packages;
+  main.replaceChildren(sectionHead('My documents', h('span',{class:'muted'}, 'Signed in as ' + inbox.display_name)),
+    rows.length ? h('div',{class:'tablewrap'}, h('table',{}, h('thead',{}, h('tr',{}, h('th',{},'Document'), h('th',{},'Received'), h('th',{},'Status'), h('th',{}, h('span',{class:'sr'},'Actions')))),
+      h('tbody',{}, rows.map(r => h('tr',{}, h('td',{class:'id'}, r.title), h('td',{}, fmtDate(r.created_at)),
+        h('td',{}, h('span',{class:'chip '+(r.document_status==='active'?'verified':'failed')}, icon(r.document_status==='active'?'check':'x'), r.document_status==='active'?'Ready':'Withdrawn')),
+        h('td',{style:'text-align:right'}, r.document_status==='active' && h('button',{class:'btn small primary',onclick:()=>openDocPanel(opened, r)},'Open'))))))
+    ) : h('div',{class:'tablewrap'}, h('div',{class:'empty'},'Nothing has been shared with you yet.')),
+    opened);
+}
 
-    async function autoLogin(username, password) {
-      try {
-        const res = await fetch("/auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, password })
-        });
-        if (res.ok) {
-          const data = await res.json();
-          token = data.token;
-          currentUser = data.username;
-          currentRole = data.role;
-          updateHeaderUser();
-        }
-      } catch (e) {
-        console.warn("Auto-login note:", e);
-      }
+function openDocPanel(host, pkg){
+  const pass = h('input',{id:'dp',type:'password',autocomplete:'off',required:true});
+  const err = h('p',{class:'err',role:'alert'});
+  const go = h('button',{class:'btn primary',type:'submit'},'Unlock and open');
+  const tl = h('ul',{class:'timeline','aria-label':'Progress'});
+  const stepEls = {};
+  Object.entries(STEP_TEXT).forEach(([k,label]) => { const li = h('li',{}, h('span',{class:'dotk'}), h('span',{}, label)); stepEls[k] = li; tl.append(li); });
+  const setStep = (k, state) => { const li = stepEls[k]; li.className = state; const d = li.firstChild; d.replaceChildren(state==='done'?icon('check'):state==='failed'?icon('x'):''); };
+  const result = h('div',{class:'result'});
+  const form = h('form',{},
+    h('div',{class:'field',style:'max-width:420px'}, h('label',{for:'dp'},'Your key passphrase'), pass, h('span',{class:'hint'},'Opening is recorded. Your copy carries an invisible mark that identifies you.')), err, go);
+  host.replaceChildren(h('div',{class:'panel pad',style:'display:grid;gap:1.25rem;margin-top:1.5rem'}, h('h2',{}, 'Open “' + pkg.title + '”'), form, tl, result));
+  pass.focus();
+  form.addEventListener('submit', async e => {
+    e.preventDefault(); err.textContent = ''; result.replaceChildren(); go.disabled = true; go.replaceChildren(h('span',{class:'spin'}), ' Opening…');
+    Object.keys(stepEls).forEach(k => setStep(k,''));
+    const play = async (steps, failedStep) => { for (const k of Object.keys(STEP_TEXT)){ const st = steps.find(s => s.step === k && s.status === 'done'); if (st){ setStep(k,'done'); await new Promise(r => setTimeout(r, 140)); } else { if (failedStep === k) setStep(k,'failed'); break; } } };
+    try {
+      const d = await api('/recipient/decrypt-and-release',{method:'POST',body:{document_id:pkg.document_id,keystore_passphrase:pass.value}, noLogout:true});
+      const steps = d.steps.slice(); steps.push({step:'release',status:'done'});
+      await play(steps);
+      pass.value = '';
+      const isPdf = d.extension === 'pdf', blob = b64ToBlob(d.protected_b64,d.media_type), url = URL.createObjectURL(blob);
+      const verdictHost = h('div',{});
+      const test = h('button',{class:'btn'},'Test this copy as if it leaked');
+      test.onclick = async () => { test.disabled = true; test.textContent = 'Checking…';
+        try { const r = await api('/submitter/evidence',{method:'POST',body:{filename:'my-opened-copy.'+d.extension,content_b64:d.protected_b64}});
+          verdictHost.replaceChildren(h('div',{class:'banner '+r.verdict}, stamp(r.verdict), h('div',{}, h('h3',{}, r.headline), h('p',{}, r.verdict==='verified' ? 'If this copy ever leaked, it would be traced back to you.' : r.explain)), h('span',{class:'spacer'}), h('button',{class:'btn small',onclick:()=>openEvidence(r)},'See details')));
+        } catch(ex){ toast(ex.message,true); } test.disabled = false; test.textContent = 'Test this copy as if it leaked'; };
+      result.replaceChildren(
+        h('div',{class:'banner verified'}, stamp('verified'), h('div',{}, h('h3',{},'Document released'), h('p',{}, `Recorded in the ledger as block #${d.record.index}, approved by ${Object.keys(d.record.attestations).length} of 4 nodes.`))),
+        h('div',{class:'row'}, h('button',{class:'btn primary',onclick:()=>saveBlob(blob, `${pkg.title.replace(/[^\w.-]+/g,'_')}.${d.extension}`)},isPdf?'Download protected PDF':'Download protected image'), h('button',{class:'btn',onclick:()=>window.open(url,'_blank')},'Open in new tab'), test),
+        verdictHost,
+        h('div',{class:'viewer'}, d.page_images.map((img,i) => h('figure',{}, h('figcaption',{}, h('span',{}, `Page ${i+1} of ${d.page_images.length}`), h('span',{}, 'Tracking mark embedded')), h('img',{src:'data:'+d.image_media_type+';base64,'+img, alt:`Page ${i+1}`})))));
+    } catch(ex){
+      const steps = (ex.data && ex.data.steps) || [];
+      await play(steps, ex.data && ex.data.step);
+      err.textContent = ex.status === 401 && ex.message.includes('passphrase') ? 'That passphrase is not correct. Try again.' :
+        ex.data && ex.data.step ? 'The document was not released: ' + ex.message.replace(/^release denied at '[^']*': /,'') : ex.message;
+      if (ex.status === 401 && !ex.message.includes('passphrase')) logout('Your session ended. Sign in again.');
     }
-
-    function updateHeaderUser() {
-      document.getElementById("header-user").textContent = currentUser;
-      const rBadge = document.getElementById("header-role");
-      rBadge.textContent = currentRole.toUpperCase();
-      rBadge.className = `role-badge role-${currentRole}`;
-    }
-
-    async function switchRole(user) {
-      currentUser = user;
-      const pw = user === "admin" ? "admin123" : (user === "investigator" ? "investigator123" : `${user}123`);
-      await autoLogin(user, pw);
-      if (document.getElementById("recip-inbox-user")) {
-        document.getElementById("recip-inbox-user").textContent = user.toUpperCase();
-      }
-      if (document.getElementById("recip-decrypt-pass")) {
-        document.getElementById("recip-decrypt-pass").value = `${user}123`;
-      }
-      loadDashboardStats();
-      if (document.getElementById("screen-recipient-portal").classList.contains("active")) {
-        loadRecipientInbox();
-      }
-    }
-
-    function showScreen(screenId) {
-      document.querySelectorAll(".view-screen").forEach(s => s.classList.remove("active"));
-      document.querySelectorAll(".nav-tab").forEach(t => t.classList.remove("active"));
-      
-      const target = document.getElementById(screenId);
-      if (target) target.classList.add("active");
-
-      // Set active tab
-      const tabIdx = {
-        'screen-dashboard': 0,
-        'screen-admin': 1,
-        'screen-recipients': 2,
-        'screen-distribution': 3,
-        'screen-recipient-portal': 4,
-        'screen-investigator': 5,
-        'screen-ledger': 6,
-        'screen-demo': 7,
-        'screen-audit': 8
-      }[screenId];
-      if (tabIdx !== undefined) {
-        document.querySelectorAll(".nav-tab")[tabIdx].classList.add("active");
-      }
-
-      // Refresh data on screen load
-      if (screenId === "screen-dashboard") loadDashboardStats();
-      if (screenId === "screen-admin") loadDocuments();
-      if (screenId === "screen-recipients") loadRecipients();
-      if (screenId === "screen-distribution") prepareDistributionWizard();
-      if (screenId === "screen-recipient-portal") loadRecipientInbox();
-      if (screenId === "screen-ledger") loadLedgerStatus();
-      if (screenId === "screen-audit") loadAuditTrail();
-    }
-
-    // --- API Helpers ---
-    function authHeaders() {
-      return {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
-      };
-    }
-
-    // --- Seed Demo Data ---
-    async function runSeed() {
-      try {
-        const res = await fetch("/demo/seed", { method: "POST" });
-        if (!res.ok) {
-          const errText = await res.text();
-          alert("Seed failed: " + errText);
-          return;
-        }
-        const d = await res.json();
-        alert("Demo data successfully seeded! Admin, Alice, Bob, Charlie & Investigator initialized.");
-        await autoLogin(currentUser, `${currentUser}123`);
-        loadDashboardStats();
-      } catch (e) {
-        alert("Seed error: " + e);
-      }
-    }
-
-    // --- Dashboard Stats ---
-    async function loadDashboardStats() {
-      try {
-        const dRes = await fetch("/admin/documents", { headers: authHeaders() });
-        if (dRes.ok) {
-          const docs = (await dRes.json()).documents || [];
-          document.getElementById("stat-docs").textContent = docs.length;
-        }
-
-        const rRes = await fetch("/admin/recipients", { headers: authHeaders() });
-        if (rRes.ok) {
-          const recips = (await rRes.json()).recipients || [];
-          document.getElementById("stat-recips").textContent = recips.length;
-        }
-
-        const lRes = await fetch("/ledger/status", { headers: authHeaders() });
-        if (lRes.ok) {
-          const lData = await lRes.json();
-          const onlineCount = (lData.nodes_summary || []).filter(n => n.online).length;
-          document.getElementById("stat-quorum").textContent = `${onlineCount} / 4`;
-        }
-
-        const cRes = await fetch("/investigator/cases", { headers: authHeaders() });
-        if (cRes.ok) {
-          const cases = (await cRes.json()).cases || [];
-          document.getElementById("stat-cases").textContent = cases.length;
-        }
-      } catch (e) {
-        console.warn("Stats load error:", e);
-      }
-    }
-
-    // --- Documents & Intake ---
-    function handleFileSelect(input) {
-      if (!input.files || !input.files[0]) return;
-      const file = input.files[0];
-      document.getElementById("pdf-filename").textContent = `Selected: ${file.name} (${(file.size/1024).toFixed(1)} KB)`;
-      const reader = new FileReader();
-      reader.onload = () => {
-        uploadedPdfB64 = reader.result.split(",")[1];
-      };
-      reader.readAsDataURL(file);
-    }
-
-    async function handleDocUpload(e) {
-      e.preventDefault();
-      const title = document.getElementById("doc-title").value;
-      if (!uploadedPdfB64) {
-        alert("Please select a PDF document first.");
-        return;
-      }
-      try {
-        const res = await fetch("/admin/documents", {
-          method: "POST",
-          headers: authHeaders(),
-          body: JSON.stringify({ title, content_b64: uploadedPdfB64 })
-        });
-        if (res.ok) {
-          const data = await res.json();
-          alert(`Document ingested & encrypted at rest! ID: ${data.document_id}`);
-          document.getElementById("doc-upload-form").reset();
-          document.getElementById("pdf-filename").textContent = "";
-          uploadedPdfB64 = "";
-          loadDocuments();
-        } else {
-          alert("Ingest failed: " + (await res.text()));
-        }
-      } catch (err) {
-        alert("Upload error: " + err);
-      }
-    }
-
-    async function loadDocuments() {
-      try {
-        const res = await fetch("/admin/documents", { headers: authHeaders() });
-        if (!res.ok) return;
-        const data = await res.json();
-        const tbody = document.getElementById("docs-list");
-        tbody.innerHTML = "";
-        (data.documents || []).forEach(d => {
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td><strong>${d.title}</strong></td>
-            <td><span class="hash-badge">${d.document_id}</span></td>
-            <td><span class="mono" style="font-size:0.7rem;">${d.original_hash.substring(0, 16)}...</span></td>
-            <td><span class="status-badge status-verified">${d.status}</span></td>
-            <td><button class="btn btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.72rem;" onclick="prefillDistribution('${d.document_id}')">Distribute</button></td>
-          `;
-          tbody.appendChild(tr);
-        });
-      } catch (e) { console.error(e); }
-    }
-
-    // --- Recipient Management ---
-    async function loadRecipients() {
-      try {
-        const res = await fetch("/admin/recipients", { headers: authHeaders() });
-        if (!res.ok) return;
-        const data = await res.json();
-        const tbody = document.getElementById("recip-list");
-        tbody.innerHTML = "";
-        (data.recipients || []).forEach(r => {
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td><strong>${r.display_name}</strong><br><span style="font-size:0.75rem; color:var(--text-dim);">${r.user_id}</span></td>
-            <td><span class="hash-badge">${r.recipient_key_id}</span></td>
-            <td><span style="font-size:0.75rem; color:var(--cyan);">ML-KEM-768<br>ML-DSA-65</span></td>
-            <td><span class="status-badge ${r.status === 'active' ? 'status-verified' : 'status-denied'}">${r.status}</span></td>
-            <td>
-              ${r.status === 'active' ? 
-                `<button class="btn btn-danger" style="padding: 0.2rem 0.5rem; font-size: 0.72rem;" onclick="revokeRecip('${r.recipient_key_id}')">Revoke</button>` 
-                : `<span style="color:var(--text-dim); font-size:0.75rem;">Revoked</span>`}
-            </td>
-          `;
-          tbody.appendChild(tr);
-        });
-      } catch (e) { console.error(e); }
-    }
-
-    async function revokeRecip(kid) {
-      if (!confirm(`Are you sure you want to revoke recipient ${kid}?`)) return;
-      await fetch(`/admin/recipients/${kid}/revoke`, { method: "POST", headers: authHeaders() });
-      loadRecipients();
-    }
-
-    // --- Distribution Wizard ---
-    async function prepareDistributionWizard() {
-      const docSelect = document.getElementById("dist-doc-select");
-      const recipBoxes = document.getElementById("dist-recip-checkboxes");
-      
-      const dRes = await fetch("/admin/documents", { headers: authHeaders() });
-      if (dRes.ok) {
-        const docs = (await dRes.json()).documents || [];
-        docSelect.innerHTML = '<option value="">-- Choose Classified Document --</option>';
-        docs.forEach(d => {
-          docSelect.innerHTML += `<option value="${d.document_id}">${d.title} (${d.document_id})</option>`;
-        });
-      }
-
-      const rRes = await fetch("/admin/recipients", { headers: authHeaders() });
-      if (rRes.ok) {
-        const recips = (await rRes.json()).recipients || [];
-        recipBoxes.innerHTML = "";
-        recips.filter(r => r.status === 'active').forEach(r => {
-          recipBoxes.innerHTML += `
-            <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; cursor: pointer;">
-              <input type="checkbox" name="dist-recips" value="${r.recipient_key_id}" checked>
-              <span><strong>${r.display_name}</strong> (${r.recipient_key_id})</span>
-            </label>
-          `;
-        });
-      }
-    }
-
-    function prefillDistribution(did) {
-      showScreen('screen-distribution');
-      setTimeout(() => {
-        document.getElementById("dist-doc-select").value = did;
-      }, 200);
-    }
-
-    async function handleCreateDistribution(e) {
-      e.preventDefault();
-      const did = document.getElementById("dist-doc-select").value;
-      const checkedBoxes = Array.from(document.querySelectorAll("input[name='dist-recips']:checked"));
-      const kids = checkedBoxes.map(b => b.value);
-      if (!did || kids.length === 0) {
-        alert("Please select a document and at least one recipient.");
-        return;
-      }
-
-      try {
-        const res = await fetch("/admin/distributions", {
-          method: "POST",
-          headers: authHeaders(),
-          body: JSON.stringify({ document_id: did, recipient_key_ids: kids })
-        });
-        if (res.ok) {
-          const d = await res.json();
-          const rDiv = document.getElementById("dist-result");
-          rDiv.style.display = "block";
-          rDiv.innerHTML = `
-            <div class="card" style="background: rgba(16, 185, 129, 0.08); border-color: var(--emerald);">
-              <strong style="color: var(--emerald);">✅ Encrypted Multi-Recipient Package Generated!</strong>
-              <div style="font-size: 0.8rem; margin-top: 0.5rem;">
-                Distribution ID: <span class="hash-badge">${d.distribution_id}</span><br>
-                Encapsulated for ${Object.keys(d.packages).length} recipients. Recipients can now decrypt independently!
-              </div>
-            </div>
-          `;
-        } else {
-          alert("Distribution error: " + (await res.text()));
-        }
-      } catch (err) {
-        alert("Failed to distribute: " + err);
-      }
-    }
-
-    // --- Recipient Decrypt & Release Flow ---
-    let selectedPackageDocId = "";
-
-    async function loadRecipientInbox() {
-      const list = document.getElementById("recip-inbox-list");
-      list.innerHTML = "<p style='color:var(--text-dim);'>Checking secure inbox...</p>";
-      try {
-        const res = await fetch("/recipient/packages", { headers: authHeaders() });
-        if (!res.ok) {
-          list.innerHTML = `<p style="color:var(--rose);">Inbox error: ${await res.text()}</p>`;
-          return;
-        }
-        const data = await res.json();
-        const pkgs = data.packages || [];
-        if (pkgs.length === 0) {
-          list.innerHTML = `<p style="color:var(--text-dim); font-size:0.85rem;">No encrypted packages for ${currentUser.toUpperCase()}. Seed demo data or distribute a document.</p>`;
-          return;
-        }
-        list.innerHTML = "";
-        pkgs.forEach(p => {
-          const card = document.createElement("div");
-          card.className = "card";
-          card.style.padding = "0.85rem";
-          card.style.marginBottom = "0.75rem";
-          card.style.cursor = "pointer";
-          card.style.border = selectedPackageDocId === p.document_id ? "1px solid var(--cyan)" : "1px solid var(--border-subtle)";
-          card.onclick = () => {
-            selectedPackageDocId = p.document_id;
-            loadRecipientInbox();
-          };
-          card.innerHTML = `
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-              <strong>${p.title}</strong>
-              <span class="hash-badge">${p.document_id}</span>
-            </div>
-            <div style="font-size:0.75rem; color:var(--text-dim); margin-top:0.3rem;">
-              Envelop: ML-KEM-768 + AES-GCM | Received: ${p.created_at}
-            </div>
-          `;
-          list.appendChild(card);
-        });
-
-        if (!selectedPackageDocId && pkgs.length > 0) {
-          selectedPackageDocId = pkgs[0].document_id;
-        }
-      } catch (e) { console.error(e); }
-    }
-
-    async function executeRecipientRelease() {
-      if (!selectedPackageDocId) {
-        alert("Please select a package from the inbox.");
-        return;
-      }
-      const pass = document.getElementById("recip-decrypt-pass").value;
-      if (!pass) {
-        alert("Please enter the local keystore passphrase.");
-        return;
-      }
-
-      // Reset Timeline
-      const steps = ['decrypt', 'fingerprint', 'sign', 'ledger', 'release'];
-      steps.forEach(s => {
-        const el = document.getElementById(`t-step-${s}`);
-        el.className = "timeline-step";
-      });
-      const tLog = document.getElementById("timeline-log");
-      tLog.innerHTML = `[${new Date().toLocaleTimeString()}] Starting zero-trust decryption gate...\n`;
-
-      const tStatus = document.getElementById("timeline-status");
-      tStatus.className = "status-badge status-warning";
-      tStatus.textContent = "Pipeline Running";
-
-      function logStep(msg) {
-        tLog.innerHTML += `[${new Date().toLocaleTimeString()}] ${msg}\n`;
-        tLog.scrollTop = tLog.scrollHeight;
-      }
-
-      // Step 1: Decrypt
-      document.getElementById("t-step-decrypt").classList.add("active");
-      logStep("Decapsulating ML-KEM-768 ciphertext locally & deriving CEK...");
-
-      try {
-        const res = await fetch("/recipient/decrypt-and-release", {
-          method: "POST",
-          headers: authHeaders(),
-          body: JSON.stringify({ document_id: selectedPackageDocId, keystore_passphrase: pass })
-        });
-
-        if (!res.ok) {
-          const err = await res.json();
-          logStep(`[FAIL] ${err.detail || 'Release Denied'}`);
-          document.getElementById("t-step-decrypt").classList.remove("active");
-          document.getElementById("t-step-decrypt").classList.add("failed");
-          tStatus.className = "status-badge status-denied";
-          tStatus.textContent = "Release Denied";
-          alert("Release Denied: " + (err.detail || "Error"));
-          return;
-        }
-
-        const data = await res.json();
-        
-        // Animate Timeline
-        document.getElementById("t-step-decrypt").className = "timeline-step completed";
-        logStep("✅ Step 1: ML-KEM decapsulated & AES-GCM decrypted in memory.");
-
-        document.getElementById("t-step-fingerprint").className = "timeline-step completed";
-        logStep(`✅ Step 2: Spread-spectrum watermark embedded (Digest: ${data.watermark_digest.substring(0, 16)}...).`);
-
-        document.getElementById("t-step-sign").className = "timeline-step completed";
-        logStep("✅ Step 3: Canonical event signed with recipient ML-DSA-65 private key.");
-
-        document.getElementById("t-step-ledger").className = "timeline-step completed";
-        const attCount = Object.keys(data.record.attestations || {}).length;
-        logStep(`✅ Step 4: Quorum verified! Committed record #${data.record.index} with ${attCount}/4 node attestations.`);
-
-        document.getElementById("t-step-release").className = "timeline-step completed";
-        logStep("✅ Step 5: Fail-closed gate passed. Protected PDF rendered into in-app viewer.");
-
-        tStatus.className = "status-badge status-verified";
-        tStatus.textContent = "Released Verified";
-
-        // Display in Viewer
-        const vContainer = document.getElementById("viewer-container");
-        vContainer.style.display = "block";
-        document.getElementById("wm-digest-tag").textContent = `WM-ID: ${data.watermark_digest.substring(0, 16)}...`;
-        
-        // Render Pages directly as images so all browsers display immediately
-        const pagesView = document.getElementById("pdf-pages-view");
-        pagesView.innerHTML = "";
-        if (data.page_images && data.page_images.length > 0) {
-          data.page_images.forEach((imgB64, idx) => {
-            const pageCard = document.createElement("div");
-            pageCard.style.cssText = "background: #fff; padding: 10px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.6); width: 100%; max-width: 540px; text-align: center;";
-            pageCard.innerHTML = `
-              <div style="font-size: 0.72rem; color: #475569; font-weight: 700; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">
-                <span>CLASSIFIED DOCUMENT • PAGE ${idx + 1} OF ${data.page_images.length}</span>
-                <span style="color: #0284c7; font-family: var(--font-mono); font-size: 0.65rem;">FINGERPRINT EMBEDDED</span>
-              </div>
-              <img src="data:image/jpeg;base64,${imgB64}" style="width: 100%; height: auto; border-radius: 4px; display: block; border: 1px solid #cbd5e1;" alt="Page ${idx + 1}">
-            `;
-            pagesView.appendChild(pageCard);
-          });
-        }
-
-        // Convert base64 to Blob URL for download & open in new tab
-        const byteCharacters = atob(data.protected_pdf_b64);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-        const pdfBlob = new Blob([byteArray], { type: "application/pdf" });
-        const blobUrl = URL.createObjectURL(pdfBlob);
-
-        document.getElementById("btn-download-pdf").onclick = () => {
-          const a = document.createElement("a");
-          a.href = blobUrl;
-          a.download = `TraceVault_${data.session_id}.pdf`;
-          a.click();
-        };
-        document.getElementById("btn-open-pdf").onclick = () => {
-          window.open(blobUrl, "_blank");
-        };
-
-      } catch (err) {
-        logStep(`[ERROR] Exception during release: ${err}`);
-      }
-    }
-
-    // --- Investigator & Leak Lab ---
-    function handleLeakSelect(input) {
-      if (!input.files || !input.files[0]) return;
-      const file = input.files[0];
-      document.getElementById("leak-filename").textContent = `Selected: ${file.name} (${(file.size/1024).toFixed(1)} KB)`;
-      const reader = new FileReader();
-      reader.onload = () => {
-        uploadedLeakB64 = reader.result.split(",")[1];
-      };
-      reader.readAsDataURL(file);
-    }
-
-    async function useSampleLeak() {
-      // Use existing demo sample if available
-      try {
-        const dRes = await fetch("/admin/documents", { headers: authHeaders() });
-        const docs = (await dRes.json()).documents || [];
-        if (docs.length > 0) {
-          document.getElementById("leak-filename").textContent = "Selected: leaked_resaved_sample.pdf (Synthetic Leaked Copy)";
-          // We can fetch or trigger demo run
-          runGoldenDemo();
-        } else {
-          alert("Please seed demo data first.");
-        }
-      } catch (e) { console.error(e); }
-    }
-
-    async function handleEvidenceAnalysis(e) {
-      e.preventDefault();
-      if (!uploadedLeakB64) {
-        alert("Please select a leak artifact to analyze.");
-        return;
-      }
-
-      const resultsDiv = document.getElementById("investigator-results");
-      resultsDiv.innerHTML = "<p style='color:var(--cyan); text-align:center;'>Extracting spread-spectrum watermark & querying 4-node ledger quorum...</p>";
-
-      try {
-        const res = await fetch("/investigator/cases", {
-          method: "POST",
-          headers: authHeaders(),
-          body: JSON.stringify({ filename: "evidence_artifact.pdf", content_b64: uploadedLeakB64 })
-        });
-        if (!res.ok) {
-          resultsDiv.innerHTML = `<p style="color:var(--rose);">Analysis error: ${await res.text()}</p>`;
-          return;
-        }
-
-        const rep = await res.json();
-        currentCaseId = rep.case_id;
-        document.getElementById("report-export-buttons").style.display = "flex";
-
-        const isVerified = rep.status === "VERIFIED";
-        resultsDiv.innerHTML = `
-          <div style="margin-bottom: 1rem; padding: 0.85rem; border-radius: 8px; background: ${isVerified ? 'rgba(16,185,129,0.1)' : 'rgba(244,63,94,0.1)'}; border: 1px solid ${isVerified ? 'var(--emerald)' : 'var(--rose)'};">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <strong style="color: ${isVerified ? 'var(--emerald)' : 'var(--rose)'}; font-size: 1.05rem;">
-                FORENSIC STATUS: ${rep.status}
-              </strong>
-              <span class="hash-badge">${rep.case_id}</span>
-            </div>
-            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.3rem;">
-              Evidence SHA3: <span class="mono">${rep.evidence_sha3_256.substring(0, 24)}...</span>
-            </div>
-          </div>
-
-          ${rep.match ? `
-            <div class="card" style="background: rgba(0, 240, 255, 0.04); margin-bottom: 1rem; border-color: rgba(0, 240, 255, 0.3);">
-              <strong style="color: var(--cyan); font-size: 0.9rem;">🎯 Attributed Recipient: ${rep.match.recipient}</strong>
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.8rem; margin-top: 0.5rem;">
-                <div>Recipient Key ID: <span class="hash-badge">${rep.match.recipient_key_id}</span></div>
-                <div>Session ID: <span class="hash-badge">${rep.match.session_id}</span></div>
-                <div>Decrypted At: <span class="mono">${rep.match.decrypted_at}</span></div>
-                <div>Ledger Record: <span class="mono">#${rep.match.record_index}</span></div>
-              </div>
-            </div>
-          ` : ''}
-
-          <div style="margin-top: 1rem;">
-            <strong style="font-size: 0.85rem; color: var(--text-dim); text-transform: uppercase;">Cryptographic Integrity Checklist:</strong>
-            <div style="margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.4rem;">
-              ${(rep.checks || []).map(c => `
-                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.3); padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.82rem;">
-                  <span>${c.name} <span style="font-size: 0.75rem; color: var(--text-dim);">${c.detail ? '(' + c.detail + ')' : ''}</span></span>
-                  <span class="status-badge ${c.passed ? 'status-verified' : 'status-denied'}">${c.passed ? 'PASS' : 'FAIL'}</span>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-
-          <p style="font-size: 0.72rem; color: var(--text-dim); margin-top: 1rem; font-style: italic;">
-            ${rep.disclaimer}
-          </p>
-        `;
-
-      } catch (err) {
-        resultsDiv.innerHTML = `<p style="color:var(--rose);">Error during analysis: ${err}</p>`;
-      }
-    }
-
-    function exportCasePDF() {
-      if (!currentCaseId) return;
-      window.open(`/investigator/cases/${currentCaseId}/pdf`, '_blank');
-    }
-
-    function exportCaseJSON() {
-      if (!currentCaseId) return;
-      window.open(`/investigator/cases/${currentCaseId}/json`, '_blank');
-    }
-
-    // --- Ledger Monitor ---
-    async function loadLedgerStatus() {
-      try {
-        const res = await fetch("/ledger/status", { headers: authHeaders() });
-        if (!res.ok) return;
-        const data = await res.json();
-        
-        const nodesGrid = document.getElementById("ledger-nodes-grid");
-        nodesGrid.innerHTML = "";
-        (data.nodes_summary || []).forEach(n => {
-          const card = document.createElement("div");
-          card.className = `node-card ${n.online ? 'online' : 'offline'}`;
-          card.innerHTML = `
-            <div class="node-header">
-              <strong>${n.id.toUpperCase()}</strong>
-              <button class="btn btn-secondary" style="font-size:0.65rem; padding:0.15rem 0.4rem;" onclick="toggleNode('${n.id}')">
-                ${n.online ? 'Simulate Offline' : 'Restore'}
-              </button>
-            </div>
-            <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.3rem;">
-              Status: <span style="color:${n.online ? 'var(--emerald)' : 'var(--rose)'}; font-weight:600;">${n.online ? 'ONLINE' : 'OFFLINE'}</span>
-            </div>
-            <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.3rem;">
-              Blocks: <strong>${n.record_count}</strong>
-            </div>
-            <div style="font-size:0.7rem; color:var(--text-dim);">
-              Head: <span class="mono">${n.head.substring(0, 12)}...</span>
-            </div>
-          `;
-          nodesGrid.appendChild(card);
-        });
-
-        // Load export for blocks
-        const expRes = await fetch("/ledger/export", { headers: authHeaders() });
-        if (expRes.ok) {
-          const expData = await expRes.json();
-          const firstNodeRecords = Object.values(expData.ledger.nodes)[0] || [];
-          const tbody = document.getElementById("ledger-blocks-list");
-          tbody.innerHTML = "";
-          if (firstNodeRecords.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-dim);">No blocks committed yet. Decrypt a document to create block #0.</td></tr>`;
-            return;
-          }
-          firstNodeRecords.forEach(b => {
-            const tr = document.createElement("tr");
-            const atts = Object.keys(b.attestations || {}).length;
-            tr.innerHTML = `
-              <td><strong>#${b.index}</strong></td>
-              <td><span class="hash-badge">${b.record_hash.substring(0, 16)}...</span></td>
-              <td><span class="mono" style="font-size:0.75rem;">${b.event.session_id}</span></td>
-              <td><span class="mono" style="font-size:0.75rem;">${b.signer_key_id}</span></td>
-              <td><span class="mono" style="font-size:0.75rem;">${b.prev_hash.substring(0, 10)}...</span></td>
-              <td><span class="status-badge status-verified">${atts}/4 Attestations</span></td>
-            `;
-            tbody.appendChild(tr);
-          });
-        }
-
-      } catch (e) { console.error(e); }
-    }
-
-    async function toggleNode(nid) {
-      await fetch(`/ledger/nodes/${nid}/toggle`, { method: "POST", headers: authHeaders() });
-      loadLedgerStatus();
-      loadDashboardStats();
-    }
-
-    function exportLedgerJSON() {
-      window.open('/ledger/export', '_blank');
-    }
-
-    // --- Audit Trail ---
-    async function loadAuditTrail() {
-      try {
-        const res = await fetch("/audit", { headers: authHeaders() });
-        if (!res.ok) return;
-        const data = await res.json();
-        
-        const badge = document.getElementById("audit-integrity-badge");
-        badge.className = `status-badge ${data.verified ? 'status-verified' : 'status-denied'}`;
-        badge.textContent = data.verified ? 'Chain Cryptographically Valid' : 'Audit Chain Compromised';
-
-        const tbody = document.getElementById("audit-list");
-        tbody.innerHTML = "";
-        (data.entries || []).forEach(e => {
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td><span class="mono" style="font-size:0.75rem;">${new Date(e.timestamp * 1000).toLocaleTimeString()}</span></td>
-            <td><strong>${e.actor}</strong></td>
-            <td><span class="hash-badge">${e.action}</span></td>
-            <td><span class="mono" style="font-size:0.7rem;">${JSON.stringify(e.details)}</span></td>
-            <td><span class="mono" style="font-size:0.7rem; color:var(--cyan);">${e.entry_hash.substring(0, 16)}...</span></td>
-          `;
-          tbody.appendChild(tr);
-        });
-      } catch (err) { console.error(err); }
-    }
-
-    // --- Interactive Attack & Demo Runner ---
-    async function runGoldenDemo() {
-      const consoleEl = document.getElementById("demo-console");
-      consoleEl.textContent = "[GOLDEN PATH] Starting end-to-end provenance workflow...\n";
-      
-      function print(msg) {
-        consoleEl.textContent += `[${new Date().toLocaleTimeString()}] ${msg}\n`;
-        consoleEl.scrollTop = consoleEl.scrollHeight;
-      }
-
-      print("1. Initializing demo environment and seeding keys...");
-      await fetch("/demo/seed", { method: "POST" });
-      print("   ✓ Registered Alice, Bob, Charlie & Admin under ML-KEM-768 / ML-DSA-65.");
-
-      print("2. Admin registering Classified PDF into AES-256-GCM vault...");
-      print("   ✓ Document SHA3-256 registered, ciphertext committed to database vault.");
-
-      print("3. Admin creating multi-recipient encrypted envelope (DIST-DEMO-001)...");
-      print("   ✓ One AES-256-GCM payload generated; 3 distinct ML-KEM-768 encapsulations created.");
-
-      print("4. Switching to Recipient 2 (Bob) for zero-trust client decryption...");
-      await autoLogin("bob", "bob123");
-      const dRes = await fetch("/recipient/packages", { headers: authHeaders() });
-      const pkgs = (await dRes.json()).packages || [];
-      if (pkgs.length > 0) {
-        print(`   ✓ Retrieved encrypted package for ${pkgs[0].document_id}.`);
-        print("   ✓ Local ML-KEM-768 decapsulation successful in recipient client.");
-        print("   ✓ Spread-spectrum watermark embedded with session-bound digest.");
-        print("   ✓ Canonical event signed with Bob's ML-DSA-65 private key.");
-        
-        const decRes = await fetch("/recipient/decrypt-and-release", {
-          method: "POST",
-          headers: authHeaders(),
-          body: JSON.stringify({ document_id: pkgs[0].document_id, keystore_passphrase: "bob123" })
-        });
-        const relData = await decRes.json();
-        print(`   ✓ 4-node quorum ledger committed record #${relData.record.index} with 4/4 attestations.`);
-        print(`   ✓ Document released to recipient. Watermark Digest: ${relData.watermark_digest.substring(0, 16)}...`);
-
-        print("\n5. Controlled Leak Simulation: Document resaved & leaked as image artifact...");
-        print("6. Investigator receives leak artifact and executes forensic verification...");
-        
-        await autoLogin("investigator", "investigator123");
-        const caseRes = await fetch("/investigator/cases", {
-          method: "POST",
-          headers: authHeaders(),
-          body: JSON.stringify({ filename: "leaked_page_q55.jpg", content_b64: relData.protected_pdf_b64 })
-        });
-        const cData = await caseRes.json();
-        print(`   ✓ Watermark extracted: status = ${cData.status}`);
-        print(`   ✓ Recipient Attribution: ${cData.match ? cData.match.recipient : 'Unknown'}`);
-        print(`   ✓ Case ID: ${cData.case_id} [STATUS: ${cData.status}]`);
-        print("\n[SUCCESS] Full Golden Path verified end-to-end with 100% cryptographic certainty!");
-        currentCaseId = cData.case_id;
-        document.getElementById("report-export-buttons").style.display = "flex";
-      }
-    }
-
-    async function runAttack(type) {
-      const consoleEl = document.getElementById("demo-console");
-      consoleEl.textContent = `[ATTACK SIMULATION: ${type.toUpperCase()}]\n`;
-      function print(msg) {
-        consoleEl.textContent += `[${new Date().toLocaleTimeString()}] ${msg}\n`;
-        consoleEl.scrollTop = consoleEl.scrollHeight;
-      }
-
-      if (type === "tamper_ledger") {
-        print("Simulating adversarial attack: 3 malicious ledger nodes rewrite block timestamps...");
-        print("Investigator re-runs verification on leaked artifact...");
-        print("[DEFENSE TRIGGERED] Signature validation failed over modified canonical event message.");
-        print("[RESULT] Status: INVALID SIGNATURE / REJECTED.");
-        print("Tampered majority is immediately detected and rejected by verification pipeline!");
-      } else if (type === "key_sub") {
-        print("Simulating adversary substituting recipient public key in registry...");
-        print("[DEFENSE TRIGGERED] Registered public key does not verify recipient ML-DSA signature.");
-        print("[RESULT] Status: INVALID SIGNATURE.");
-      } else if (type === "quorum_loss") {
-        print("Simulating infrastructure attack: taking 2 of 4 ledger nodes offline...");
-        await toggleNode("node-1");
-        await toggleNode("node-2");
-        print("Attempting recipient decryption with only 2 live nodes (Quorum requires ≥3)...");
-        print("[FAIL-CLOSED TRIGGERED] ReleaseDenied at 'ledger': ledger quorum unavailable (2/4 nodes online).");
-        print("[RESULT] Document decrypted bytes destroyed in memory. Release strictly blocked!");
-        print("Restoring nodes...");
-        await toggleNode("node-1");
-        await toggleNode("node-2");
-      }
-    }
-  </script>
+    go.disabled = false; go.textContent = 'Unlock and open';
+  });
+}
+
+/* ================================================================== AUDITOR */
+function auditorView(){
+  shell([['subs','Submissions'],['ledger','Ledger'],['tests','Security tests'],['activity','Activity']], {
+    subs: async main => { const items = (await api('/auditor/evidence')).items;
+      const q = h('input',{type:'search','aria-label':'Search submissions',placeholder:'Search by ID, file or submitter'});
+      const st = h('select',{'aria-label':'Filter by status'}, h('option',{value:''},'All statuses'), h('option',{value:'verified'},'Verified'), h('option',{value:'inconclusive'},'Needs review'), h('option',{value:'failed'},'Failed'));
+      const host = h('div',{});
+      const draw = () => { const t = q.value.trim().toLowerCase(); host.replaceChildren(evidenceTable(items.filter(i => (!st.value || i.verdict === st.value) && (!t || (i.case_id+' '+i.filename+' '+i.submitter).toLowerCase().includes(t))),{onOpen:openEvidence, empty: items.length ? 'No submissions match your filters.' : 'No evidence has been submitted yet.'})); };
+      q.addEventListener('input', draw); st.addEventListener('change', draw); draw();
+      main.replaceChildren(sectionHead('All submissions', h('span',{class:'muted'},'Read-only view')), h('div',{class:'toolbar'}, q, st), host); },
+    ledger: ledgerScreen, tests: testsScreen, activity: activityScreen
+  });
+}
+
+/* ================================================================== ADMIN */
+function adminView(){
+  shell([['overview','Overview'],['docs','Documents'],['recips','Recipients'],['share','Share'],['evidence','Evidence'],['ledger','Ledger'],['users','Users'],['tests','Tests and demo'],['activity','Activity']], {
+    overview: overviewScreen, docs: adminDocsScreen, recips: recipientsScreen, share: shareScreen,
+    evidence: m => evidenceScreen(m, { all: true }), ledger: ledgerScreen, users: usersScreen, tests: testsScreen, activity: activityScreen
+  });
+}
+
+async function overviewScreen(main){
+  const [docs, recs, nodes, ev] = await Promise.all([api('/admin/documents'), api('/admin/recipients'), api('/admin/nodes'), api('/auditor/evidence')]);
+  const fig = (v,l) => h('div',{}, h('b',{},v), h('span',{class:'muted'},l));
+  main.replaceChildren(sectionHead('Overview'),
+    h('div',{class:'figures'}, fig(docs.documents.length,'Protected documents'), fig(recs.recipients.filter(r=>r.status==='active').length,'Active recipients'),
+      fig(`${nodes.nodes.filter(x=>x.online).length} of ${nodes.nodes.length}`,'Ledger nodes online'), fig(ev.items.length,'Evidence checks'), fig(ev.items.filter(i=>i.verdict==='verified').length,'Traced to a recipient')),
+    h('div',{class:'grid2'},
+      h('div',{class:'panel cardrow'}, h('h2',{},'How a document is protected'),
+        h('ul',{class:'list'},
+          h('li',{}, h('b',{},'Locked at rest. '), 'Documents sit in the vault encrypted with AES-256.'),
+          h('li',{}, h('b',{},'One lock per person. '), 'Each recipient gets their own post-quantum key (ML-KEM-768) to open it.'),
+          h('li',{}, h('b',{},'Marked per opening. '), 'Every opened copy carries an invisible mark unique to that person and moment.'),
+          h('li',{}, h('b',{},'Signed by the opener. '), 'They sign the event with an ML-DSA-65 key before the document is released.'),
+          h('li',{}, h('b',{},'Recorded by four nodes. '), 'At least 3 of 4 ledger nodes must approve, or the document is not released.'))),
+      h('div',{class:'panel cardrow'}, h('h2',{},'Get started'),
+        h('p',{class:'muted'},'Try the whole story with sample data, or set up your own documents and people.'),
+        h('div',{class:'row'}, h('button',{class:'btn primary',onclick:()=>S.go('tests')},'Run the demo'), h('button',{class:'btn',onclick:()=>S.go('docs')},'Add a document'), h('button',{class:'btn',onclick:()=>S.go('recips')},'Add a recipient'))))
+    ,
+    h('div',{}, subHead('Recent evidence checks'), evidenceTable(ev.items.slice(0,6),{onOpen:openEvidence, empty:'No evidence has been checked yet.'})));
+}
+
+const TYPE_LABELS={pdf:'PDF',png:'PNG',jpeg:'JPEG',gif:'GIF',bmp:'BMP',webp:'WebP',tiff:'TIFF',docx:'Word',doc:'Word',pptx:'PowerPoint',ppt:'PowerPoint',xlsx:'Excel',xls:'Excel',odt:'OpenDocument',odp:'OpenDocument',ods:'OpenDocument',rtf:'RTF',txt:'Text',csv:'CSV'};
+const typeLabel = k => TYPE_LABELS[k] || (k||'PDF').toUpperCase();
+async function adminDocsScreen(main){
+  const docs = (await api('/admin/documents')).documents;
+  const t = S.tech;
+  const title = h('input',{id:'dt',required:true,placeholder:'e.g. Operation plan, Q4'});
+  const file = h('input',{id:'df',type:'file',accept:'.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.odt,.odp,.ods,.rtf,.txt,.csv,.png,.jpg,.jpeg,.gif,.bmp,.webp,.tif,.tiff,application/pdf,image/*',required:true});
+  const err = h('p',{class:'err',role:'alert'}), go = h('button',{class:'btn primary',type:'submit'},'Add to vault');
+  const form = h('form',{}, h('div',{class:'field'}, h('label',{for:'dt'},'Title'), title), h('div',{class:'field'}, h('label',{for:'df'},'File'), file, h('span',{class:'hint'},'PDF, Word, PowerPoint, Excel, OpenDocument, RTF, TXT, CSV or image. Office files are turned into PDF so they can carry the tracking mark. The file is encrypted the moment it is stored.')), err, go);
+  form.addEventListener('submit', async e => {
+    e.preventDefault(); err.textContent = ''; const f = file.files[0]; if (!f) return;
+    go.disabled = true; go.replaceChildren(h('span',{class:'spin'}), ' Encrypting…');
+    try { await api('/admin/documents',{method:'POST',body:{title:title.value.trim(),filename:f.name,content_b64:await fileToB64(f)}}); toast('Document added to the vault'); adminDocsScreen(main); }
+    catch(ex){ err.textContent = ex.message; go.disabled = false; go.textContent = 'Add to vault'; }
+  });
+  main.replaceChildren(sectionHead('Documents'),
+    h('div',{class:'panel pad',style:'max-width:560px'}, h('h2',{style:'margin-bottom:.8rem'},'Add a document'), form),
+    h('div',{}, subHead('Protected documents'), docs.length ? h('div',{class:'tablewrap'}, h('table',{}, h('thead',{}, h('tr',{}, h('th',{},'Title'), h('th',{},'Type'), h('th',{},'Added'), h('th',{},'Status'), t && h('th',{},'Document ID'), t && h('th',{},'Fingerprint (SHA3-256)'), h('th',{}, h('span',{class:'sr'},'Actions')))),
+      h('tbody',{}, docs.map(d => h('tr',{}, h('td',{class:'id'}, d.title), h('td',{}, typeLabel(d.source_kind)), h('td',{}, fmtDate(d.created_at)),
+        h('td',{}, h('span',{class:'chip '+(d.status==='active'?'verified':'failed')}, icon(d.status==='active'?'check':'x'), d.status==='active'?'Active':'Withdrawn')),
+        t && h('td',{}, short(d.document_id)), t && h('td',{}, short(d.original_hash, 20)),
+        h('td',{style:'text-align:right'}, d.status==='active' && h('button',{class:'btn small',onclick:()=>{S.shareDoc=d.document_id; S.go('share');}},'Share')))))))
+      : h('div',{class:'tablewrap'}, h('div',{class:'empty'},'No documents yet. Add one above.'))));
+}
+
+async function recipientsScreen(main){
+  const [recs, users] = await Promise.all([api('/admin/recipients'), api('/admin/users')]);
+  const t = S.tech, list = recs.recipients, taken = new Set(list.map(r => r.user_id));
+  const free = users.users.filter(u => u.role === 'submitter' && !taken.has(u.username));
+  const acct = h('select',{id:'ra',required:true}, free.map(u => h('option',{value:u.username}, u.username)));
+  const name = h('input',{id:'rn',required:true,minlength:2,placeholder:'e.g. Col. David Vance'});
+  const pass = h('input',{id:'rp',type:'password',required:true,minlength:8,autocomplete:'new-password'});
+  const err = h('p',{class:'err',role:'alert'}), go = h('button',{class:'btn primary',type:'submit'},'Create recipient');
+  const form = free.length ? h('form',{},
+    h('div',{class:'field'}, h('label',{for:'ra'},'Account'), acct),
+    h('div',{class:'field'}, h('label',{for:'rn'},'Name'), name),
+    h('div',{class:'field'}, h('label',{for:'rp'},'Key passphrase (at least 8 characters)'), pass, h('span',{class:'hint'},'Give this to the recipient. It is needed every time they open a document and is never stored.')), err, go)
+    : h('p',{class:'muted'}, 'Every submitter account already has a recipient profile. Add a submitter in Users first, or ask the person to set up their own key when they sign in.');
+  form.addEventListener && form.addEventListener('submit', async e => {
+    e.preventDefault(); err.textContent = ''; go.disabled = true;
+    try { await api('/admin/recipients/enroll',{method:'POST',body:{user_id:acct.value,display_name:name.value.trim(),passphrase:pass.value}}); toast('Recipient created'); recipientsScreen(main); }
+    catch(ex){ err.textContent = ex.message; go.disabled = false; }
+  });
+  main.replaceChildren(sectionHead('Recipients'),
+    h('div',{class:'panel pad',style:'max-width:560px'}, h('h2',{style:'margin-bottom:.8rem'},'Add a recipient'), form),
+    h('div',{}, subHead('People who can receive documents'), list.length ? h('div',{class:'tablewrap'}, h('table',{}, h('thead',{}, h('tr',{}, h('th',{},'Name'), h('th',{},'Account'), h('th',{},'Status'), t && h('th',{},'Key ID'), t && h('th',{},'Algorithms'), h('th',{}, h('span',{class:'sr'},'Actions')))),
+      h('tbody',{}, list.map(r => h('tr',{}, h('td',{class:'id'}, r.display_name), h('td',{}, r.user_id),
+        h('td',{}, h('span',{class:'chip '+(r.status==='active'?'verified':'failed')}, icon(r.status==='active'?'check':'x'), r.status==='active'?'Active':'Revoked')),
+        t && h('td',{}, short(r.recipient_key_id)), t && h('td',{}, 'ML-KEM-768, ML-DSA-65'),
+        h('td',{style:'text-align:right'}, r.status==='active' && h('button',{class:'btn small danger',onclick:async()=>{ if(!confirm(`Revoke ${r.display_name}? They will no longer be able to receive documents.`)) return; try{ await api(`/admin/recipients/${encodeURIComponent(r.recipient_key_id)}/revoke`,{method:'POST'}); toast('Recipient revoked'); }catch(e){ toast(e.message,true);} recipientsScreen(main); }},'Revoke')))))))
+      : h('div',{class:'tablewrap'}, h('div',{class:'empty'},'No recipients yet.'))));
+}
+
+async function shareScreen(main){
+  const [docs, recs] = await Promise.all([api('/admin/documents'), api('/admin/recipients')]);
+  const active = docs.documents.filter(d => d.status === 'active'), people = recs.recipients.filter(r => r.status === 'active');
+  if (!active.length || !people.length){
+    main.replaceChildren(sectionHead('Share a document'), h('div',{class:'panel pad'}, h('p',{class:'muted',style:'margin-bottom:1rem'},
+      !active.length ? 'Add a document first.' : 'Add at least one recipient first.'),
+      h('div',{class:'row'}, h('button',{class:'btn',onclick:()=>S.go('docs')},'Go to Documents'), h('button',{class:'btn',onclick:()=>S.go('recips')},'Go to Recipients')))); return;
+  }
+  const sel = h('select',{id:'sd'}, active.map(d => h('option',{value:d.document_id, selected: d.document_id===S.shareDoc?true:null}, d.title)));
+  const boxes = people.map(r => h('input',{type:'checkbox',value:r.recipient_key_id}));
+  const pick = h('div',{class:'pick',role:'group','aria-label':'Recipients'}, people.map((r,i) => h('label',{}, boxes[i], `${r.display_name} (${r.user_id})`)));
+  const err = h('p',{class:'err',role:'alert'}), go = h('button',{class:'btn primary',type:'submit'},'Share securely');
+  const result = h('div',{});
+  const form = h('form',{},
+    h('div',{class:'field'}, h('label',{for:'sd'},'Document'), sel),
+    h('div',{class:'field'}, h('span',{style:'font-weight:600;font-size:.9rem'},'Who should receive it?'), pick, h('span',{class:'hint'},'Each person gets their own locked copy that only their key can open.')), err, go);
+  form.addEventListener('submit', async e => {
+    e.preventDefault(); err.textContent = '';
+    const ids = boxes.filter(b => b.checked).map(b => b.value);
+    if (!ids.length){ err.textContent = 'Choose at least one recipient.'; return; }
+    go.disabled = true; go.replaceChildren(h('span',{class:'spin'}), ' Encrypting…');
+    try { const r = await api('/admin/distributions',{method:'POST',body:{document_id:sel.value,recipient_key_ids:ids}});
+      result.replaceChildren(h('div',{class:'banner verified'}, stamp('verified'), h('div',{}, h('h3',{},`Shared with ${ids.length} ${ids.length===1?'person':'people'}`), h('p',{}, 'They will see it under My documents.' + (S.tech ? ' Share ID: ' + r.distribution_id : '')))));
+      boxes.forEach(b => b.checked = false); toast('Document shared'); }
+    catch(ex){ err.textContent = ex.message; }
+    go.disabled = false; go.textContent = 'Share securely';
+  });
+  main.replaceChildren(sectionHead('Share a document'), h('div',{class:'panel pad',style:'max-width:560px'}, form), result);
+}
+
+async function usersScreen(main){
+  const u = (await api('/admin/users')).users;
+  const draw = () => usersScreen(main);
+  main.replaceChildren(sectionHead('Users', h('button',{class:'btn primary',onclick:()=>formDialog('Add a user',[
+      {name:'username',label:'Username',hint:'3–32 letters, digits, dot, dash or underscore.',auto:'off'},
+      {name:'password',label:'Temporary password (at least 8 characters)',type:'password',auto:'new-password',min:8},
+      {name:'role',label:'Role',options:Object.entries(ROLE_TEXT)}],'Add user',
+      async v=>{ await api('/admin/users',{method:'POST',body:v}); toast('User added'); draw(); })},'Add user')),
+    h('div',{class:'tablewrap'}, h('table',{}, h('thead',{}, h('tr',{}, h('th',{},'Username'), h('th',{},'Role'), h('th',{},'Added'), h('th',{}, h('span',{class:'sr'},'Actions')))),
+      h('tbody',{}, u.map(x => {
+        const sel = h('select',{'aria-label':'Role for '+x.username}, Object.entries(ROLE_TEXT).map(([v,l]) => h('option',{value:v,selected:v===x.role?true:null}, l)));
+        sel.onchange = async () => { try { await api(`/admin/users/${encodeURIComponent(x.username)}/role`,{method:'POST',body:{role:sel.value}}); toast(`${x.username} is now ${ROLE_TEXT[sel.value]}`); } catch(e){ toast(e.message,true); } draw(); };
+        return h('tr',{}, h('td',{class:'id'}, x.username), h('td',{}, sel), h('td',{}, fmtDate(x.created_at)),
+          h('td',{style:'white-space:nowrap;text-align:right'},
+            h('button',{class:'btn small',onclick:()=>formDialog('Reset password for '+x.username,[{name:'password',label:'New password (at least 8 characters)',type:'password',auto:'new-password',min:8}],'Reset password',
+              async v=>{ await api(`/admin/users/${encodeURIComponent(x.username)}/password`,{method:'POST',body:v}); toast('Password reset'); })},'Reset password'), ' ',
+            h('button',{class:'btn small danger',onclick:async()=>{ if(!confirm(`Delete ${x.username}? They will be signed out immediately.`)) return; try{ await api('/admin/users/'+encodeURIComponent(x.username),{method:'DELETE'}); toast('User deleted'); }catch(e){ toast(e.message,true);} draw(); }},'Delete')));
+      })))));
+}
+
+/* ---------- routing: role decides the workspace ---------- */
+function route(){
+  if (!S.token) return renderLogin();
+  ({ submitter: submitterView, auditor: auditorView, admin: adminView }[S.role] || (() => logout('Unknown role.')))();
+}
+(function boot(){
+  try { const s = JSON.parse(store.get('tv') || 'null'); if (s && s.t){ S.token = s.t; S.user = s.u; S.role = s.r; } } catch {}
+  S.tech = store.get('tvtech') === '1';
+  route();
+})();
+</script>
 </body>
 </html>
